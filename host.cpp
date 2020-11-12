@@ -49,7 +49,7 @@ int main()
         }
 	}
 
-	printf("We got %d/1000 errors\n", err_cnt);
+	printf("We got %d/1000 errors\n", err_cnt, N_IMG);
 
 	return 0;
 }

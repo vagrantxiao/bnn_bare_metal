@@ -834,6 +834,7 @@ void top(
     }
   }
   else {
+	//printf("bin_dense\n");
     bin_dense(
         wt_mem,
         kh_mem,
