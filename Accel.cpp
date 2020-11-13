@@ -199,14 +199,7 @@ void bin_conv(
   const unsigned images_per_phase = PIX_PER_PHASE >> (2*log_width);
   const unsigned WORDS_PER_PHASE = PIX_PER_PHASE / WORD_SIZE;
 
-  printf("%08d, %08d, %08d, %08d, %08d, %08d, %08d\n", (unsigned int)d_i_idx,
-		  	  	  	  	  	  	  	  	  	  	  	  (unsigned int)d_o_idx,
-													  (unsigned int)n_inputs,
-													  (unsigned int)o_index,
-													  (unsigned int)new_batch,
-													  (unsigned int)width_mode,
-													  (unsigned int)norm_mode
-													  );
+
 
 
   assert(n_phases % images_per_phase == 0);
@@ -748,6 +741,8 @@ void top(
 	hls::stream< Word > fp_conv_in1("fp_conv_in1");
 	hls::stream< Word > fp_conv_in2("fp_conv_in2");
 	hls::stream< Word > fp_conv_out1("fp_conv_out1");
+	static int bin_conv_cnt = 0;
+
 
   DB_PRINT(2, "==== Entering Accel ====\n");
   const ap_uint<2> layer_type = layer_mode(2,1);
@@ -870,6 +865,25 @@ void top(
     assert(norm_mode != 2 || n_outputs % 4 == 0); // needed for pooling of 8x8 image
     assert(n_inputs % CONVOLVERS == 0);
 
+    printf("%d, %d, %d, %d, %d, %d, %d\n", (unsigned int)d_i_idx,
+  		  	  	  	  	  	  	  	  	  	  	  	  (unsigned int)d_o_idx,
+  													  (unsigned int)n_inputs,
+  													  (unsigned int)o_index,
+  													  (unsigned int)width_mode,
+  													  (unsigned int)norm_mode,
+													  (unsigned int)n_outputs
+  													  );
+
+    ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
+    ap_uint<1> d_o_idx_list[]  =         {1,  0,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1  };
+    const Address n_inputs_list[] =      {128,128,256,256,256,256,256,256,512,512,512,512,512,512,512,512};
+    const Address o_index_list[] =             {0,  0,  0,  128,0,  128,256,384,0,  64, 128,192,256,320,384,448};
+    const ap_uint<2> width_mode_list[] = {2,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0  };
+    const ap_uint<2> norm_mode_list[] =  {2,  1,  2,  2,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,  2  };
+    const Address n_outputs_list[] =     {128,256,128,128,128,128,128,128,64, 64, 64,64,  64, 64, 64, 64 };
+
+    o_index = o_index_list[bin_conv_cnt];
+    printf("bin_conv_cnt=%d\n", bin_conv_cnt);
     LOOP_IMG_BATCH:
     for (IdxType i = 0; i < n_outputs; ++i) {
       // Load the batch-norm parameters for this output
@@ -880,17 +894,21 @@ void top(
           wt_mem,
           nc,
           dmem,
-          d_i_idx, d_o_idx,
-          n_inputs,
+          d_i_idx_list[bin_conv_cnt],
+		  d_o_idx_list[bin_conv_cnt],
+          n_inputs_list[bin_conv_cnt],
           o_index,
           i == 0 ? 1 : 0,         // new_batch
-          width_mode,
-          norm_mode
+          width_mode_list[bin_conv_cnt],
+          norm_mode_list[bin_conv_cnt]
       );
 
       kh_index++;
       o_index++;
     }
+
+    bin_conv_cnt++;
+    if(bin_conv_cnt==16) bin_conv_cnt = 0;
   }
   else {
 	//printf("bin_dense\n");
