@@ -1,6 +1,6 @@
 #ifndef TYPEDEFS_H
 #define TYPEDEFS_H
-
+#include <hls_stream.h>
 #include <ap_int.h>
 
 //#define USE_FLOAT

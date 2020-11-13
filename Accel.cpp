@@ -454,7 +454,7 @@ void bin_conv(
 // Module to do the first conv layer
 // -----------------------------------------------------------------------
 void fp_conv(
-    Word wt_mem[CONVOLVERS][C_WT_WORDS],
+	hls::stream<ap_uint<32> > & Input_1,//Word wt_mem[CONVOLVERS][C_WT_WORDS],
     Word kh_mem[KH_WORDS],
     Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
     ap_uint<1> d_i_idx,
@@ -494,7 +494,7 @@ void fp_conv(
     // The weights for the 1st conv layer are just laid out
     // linearly across wt_mem, 3 weights per 64-bit word
     DB_PRINT(3, "n = %u\n", n.to_int());
-    Word wt_word = wt_mem[n % CONVOLVERS][n / CONVOLVERS];
+    Word wt_word =  Input_1.read();//wt_mem[n % CONVOLVERS][n / CONVOLVERS];
     LOOP_LOAD_WTS:
     for (ap_uint<2> m = 0; m < M; ++m) {
       wtbuf[m] = wt_word((m+1)*WT_SIZE-1, m*WT_SIZE);
@@ -792,9 +792,13 @@ void top(
 
   if (layer_type == LAYER_CONV1) {
     assert(n_inputs == 3);
-
+    hls::stream<ap_uint<32> > fp_conv_in1("fp_conv_in1");
+    for(int n=0; n<128; n++)
+    {
+    	fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
+    }
     fp_conv(
-        wt_mem,
+    	fp_conv_in1,//wt_mem,
         kh_mem,
         dmem,
         d_i_idx,
