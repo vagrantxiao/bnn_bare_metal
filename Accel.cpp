@@ -865,14 +865,7 @@ void top(
     assert(norm_mode != 2 || n_outputs % 4 == 0); // needed for pooling of 8x8 image
     assert(n_inputs % CONVOLVERS == 0);
 
-    printf("%d, %d, %d, %d, %d, %d, %d\n", (unsigned int)d_i_idx,
-  		  	  	  	  	  	  	  	  	  	  	  	  (unsigned int)d_o_idx,
-  													  (unsigned int)n_inputs,
-  													  (unsigned int)o_index,
-  													  (unsigned int)width_mode,
-  													  (unsigned int)norm_mode,
-													  (unsigned int)n_outputs
-  													  );
+    printf("%d\n", (unsigned int)kh_index);
 
     ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
     ap_uint<1> d_o_idx_list[]  =         {1,  0,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1  };
@@ -883,6 +876,7 @@ void top(
     const Address n_outputs_list[] =     {128,256,128,128,128,128,128,128,64, 64, 64,64,  64, 64, 64, 64 };
 
     o_index = o_index_list[bin_conv_cnt];
+    kh_index = 0;
     printf("bin_conv_cnt=%d\n", bin_conv_cnt);
     LOOP_IMG_BATCH:
     for (IdxType i = 0; i < n_outputs; ++i) {
