@@ -78,6 +78,7 @@ typedef ap_fixed<24,6, AP_RND> C1ConvType;
 //-------------------------------------------------------------------
 template<typename T>
 void load_kh(T& comp, const Word kh_mem[KH_WORDS], Address idx) {
+  //printf("kh_mem %d\n", (unsigned int)idx/KH_PER_WORD);
   Word kh_word = kh_mem[idx/KH_PER_WORD];
   IdxType off = idx % KH_PER_WORD;
   if (off == 0)

@@ -455,18 +455,12 @@ void bin_conv(
 // -----------------------------------------------------------------------
 void fp_conv(
 	hls::stream<ap_uint<32> > & Input_1,//Word wt_mem[CONVOLVERS][C_WT_WORDS],
-    Word kh_mem[KH_WORDS],
-    Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
-    ap_uint<1> d_i_idx,
-    ap_uint<1> d_o_idx,
-    const Address kh_index,
-    const Address o_index,
-    const unsigned N
+    Word dmem[2][CONVOLVERS][C_DMEM_WORDS]
 ) {
   const unsigned M = 3;
   const unsigned S = 32;
   const unsigned OUTWORDS = 16; // words per output image
-
+  Word kh_mem[KH_WORDS];
   C1InputType win[M][K][K];
   C1InputType lbuf[M][K-1][S];
   Word outwords[OUTWORDS];
@@ -474,6 +468,18 @@ void fp_conv(
 
   Address wt_offset = 0;
   ap_uint<3> wt_addr = 0;
+
+  ap_uint<1> d_i_idx = 1;
+  ap_uint<1> d_o_idx = 0;
+  const Address kh_index = 0;
+  const Address o_index = 0;
+  const unsigned N = 128;
+
+
+  for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
+  {
+  	kh_mem[kh_i] = Input_1.read();
+  }
 
   // Parallelized across m, better for HLS
   LOOP_FP_CONV_O:
@@ -504,6 +510,7 @@ void fp_conv(
 
     // load batch norm params
     C1Comp nc;
+
     load_kh(nc, kh_mem, (kh_index+n));
     //printf ("  n=%3d, nc=%6.3f\n", n.to_int(), nc.to_float());
 
@@ -793,19 +800,26 @@ void top(
   if (layer_type == LAYER_CONV1) {
     assert(n_inputs == 3);
     hls::stream<ap_uint<32> > fp_conv_in1("fp_conv_in1");
+
+    for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
+	{
+		fp_conv_in1.write(kh_mem[kh_i]);
+	}
+
     for(int n=0; n<128; n++)
     {
     	fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
     }
+
+    printf("d_i_idx=%d\n", (unsigned int)d_i_idx);
+    printf("d_o_idx=%d\n", (unsigned int)d_o_idx);
+    printf("kh_index=%d\n", (unsigned int)kh_index);
+    printf("o_index=%d\n", (unsigned int)o_index);
+    printf("n_outputs=%d\n", (unsigned int)n_outputs);
+
     fp_conv(
     	fp_conv_in1,//wt_mem,
-        kh_mem,
-        dmem,
-        d_i_idx,
-        d_o_idx,
-        kh_index,
-        o_index,
-        n_outputs
+        dmem
     );
 
     kh_index += n_outputs;

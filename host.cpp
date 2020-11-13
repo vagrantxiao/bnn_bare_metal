@@ -6,9 +6,16 @@
 #include "data.h"
 #include "label.h"
 
-#define N_IMG 10
-int main()
-{
+
+int main(int argc, char** argv) {
+  unsigned N_IMG;
+  if (argc < 2) {
+    printf ("We will use default N_IMG = 1\n");
+    N_IMG  = 1;
+  }else{
+	N_IMG  = std::stoi(argv[1]);
+  }
+
 	printf("Hello world\n");
 	int i;
 	int j;
