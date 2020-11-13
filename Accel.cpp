@@ -199,6 +199,16 @@ void bin_conv(
   const unsigned images_per_phase = PIX_PER_PHASE >> (2*log_width);
   const unsigned WORDS_PER_PHASE = PIX_PER_PHASE / WORD_SIZE;
 
+  printf("%08d, %08d, %08d, %08d, %08d, %08d, %08d\n", (unsigned int)d_i_idx,
+		  	  	  	  	  	  	  	  	  	  	  	  (unsigned int)d_o_idx,
+													  (unsigned int)n_inputs,
+													  (unsigned int)o_index,
+													  (unsigned int)new_batch,
+													  (unsigned int)width_mode,
+													  (unsigned int)norm_mode
+													  );
+
+
   assert(n_phases % images_per_phase == 0);
   assert(n_inputs % images_per_phase == 0);
   assert(images_per_phase*words_per_image == WORDS_PER_PHASE);
@@ -454,9 +464,14 @@ void bin_conv(
 // Module to do the first conv layer
 // -----------------------------------------------------------------------
 void fp_conv(
-	hls::stream<ap_uint<32> > & Input_1,//Word wt_mem[CONVOLVERS][C_WT_WORDS],
-    Word dmem[2][CONVOLVERS][C_DMEM_WORDS]
+	hls::stream< Word > & Input_1,//Word wt_mem[CONVOLVERS][C_WT_WORDS],
+	hls::stream< Word > & Input_2,
+	hls::stream< Word > & Output_1
 ) {
+#pragma HLS INTERFACE ap_hs port=Input_1
+#pragma HLS INTERFACE ap_hs port=Input_2
+#pragma HLS INTERFACE ap_hs port=Output_1
+
   const unsigned M = 3;
   const unsigned S = 32;
   const unsigned OUTWORDS = 16; // words per output image
@@ -474,7 +489,12 @@ void fp_conv(
   const Address kh_index = 0;
   const Address o_index = 0;
   const unsigned N = 128;
+  Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
 
+  for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+	for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+      for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+        dmem[dmem_i][dmem_j][dmem_k] = Input_2.read();
 
   for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
   {
@@ -522,6 +542,7 @@ void fp_conv(
         if (r < S && c < S) {
           const Address addr = r*S + c;
           inword = dmem[d_i_idx][addr/C_DMEM_WORDS][addr%C_DMEM_WORDS];
+
         }
 
         for (ap_uint<2> m = 0; m < M; ++m) {
@@ -583,8 +604,17 @@ void fp_conv(
       Address bank_idx = img_idx % CONVOLVERS;
       Address bank_off = img_idx / CONVOLVERS;
       dmem[d_o_idx][bank_idx][bank_off*OUTWORDS + i] = outwords[i];
+      //printf("d_o_idx = %d, bank_idx = %d, bank_off*OUTWORDS + i = %d\n",
+      //        		  (unsigned int)(d_o_idx),
+      //				  (unsigned int)(bank_idx),
+      //				  (unsigned int)(bank_off*OUTWORDS + i));
     }
   } // n
+  for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+	for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+      for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+        Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
+
 }
 
 void bin_dense(
@@ -715,6 +745,10 @@ void top(
     const ap_uint<2> width_mode,  // 0=8'b, 1=16'b, 2=32'b
     const ap_uint<2> norm_mode    // 0='do nothing', 1='do norm', 2='do pool'
 ) {
+	hls::stream< Word > fp_conv_in1("fp_conv_in1");
+	hls::stream< Word > fp_conv_in2("fp_conv_in2");
+	hls::stream< Word > fp_conv_out1("fp_conv_out1");
+
   DB_PRINT(2, "==== Entering Accel ====\n");
   const ap_uint<2> layer_type = layer_mode(2,1);
   const unsigned width = 8 << width_mode;
@@ -749,7 +783,7 @@ void top(
   static Word wt_mem[CONVOLVERS][C_WT_WORDS];
   static Address kh_index = 0;
   static Address o_index = 0;
-
+  printf("d_i_idx,d_o_idx,n_inputs,o_index,new_batch,width_mode,norm_mode\n");
   if (layer_mode[0]) {
     kh_index = 0;
     o_index = 0;
@@ -799,7 +833,7 @@ void top(
 
   if (layer_type == LAYER_CONV1) {
     assert(n_inputs == 3);
-    hls::stream<ap_uint<32> > fp_conv_in1("fp_conv_in1");
+
 
     for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
 	{
@@ -811,16 +845,23 @@ void top(
     	fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
     }
 
-    printf("d_i_idx=%d\n", (unsigned int)d_i_idx);
-    printf("d_o_idx=%d\n", (unsigned int)d_o_idx);
-    printf("kh_index=%d\n", (unsigned int)kh_index);
-    printf("o_index=%d\n", (unsigned int)o_index);
-    printf("n_outputs=%d\n", (unsigned int)n_outputs);
+
+
+    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+        	fp_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
 
     fp_conv(
     	fp_conv_in1,//wt_mem,
-        dmem
+		fp_conv_in2,
+		fp_conv_out1
     );
+
+    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+          dmem[dmem_i][dmem_j][dmem_k] = fp_conv_out1.read();
 
     kh_index += n_outputs;
     o_index += n_outputs;
