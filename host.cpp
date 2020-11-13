@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
         }
 	}
 
-	printf("We got %d/%d errors\n", err_cnt, N_IMG);
+	printf("We got %d/%d errors\nDone\n", err_cnt, N_IMG);
 
 	return 0;
 }
