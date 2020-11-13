@@ -453,6 +453,53 @@ void bin_conv(
   }
 }
 
+void bin_conv_wrapper(
+    Word wt_mem[CONVOLVERS][C_WT_WORDS],
+    Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
+	Word kh_mem[KH_WORDS]
+) {
+	static unsigned int bin_conv_cnt = 0;
+
+    ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
+    ap_uint<1> d_o_idx_list[]  =         {1,  0,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1  };
+    const Address n_inputs_list[] =      {128,128,256,256,256,256,256,256,512,512,512,512,512,512,512,512};
+    const Address o_index_list[] =             {0,  0,  0,  128,0,  128,256,384,0,  64, 128,192,256,320,384,448};
+    const ap_uint<2> width_mode_list[] = {2,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0  };
+    const ap_uint<2> norm_mode_list[] =  {2,  1,  2,  2,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,  2  };
+    const Address n_outputs_list[] =     {128,256,128,128,128,128,128,128,64, 64, 64,64,  64, 64, 64, 64 };
+
+    Address o_index = o_index_list[bin_conv_cnt];
+    Address n_outputs = n_outputs_list[bin_conv_cnt];
+    Address kh_index = 0;
+    printf("bin_conv_cnt=%d\n", bin_conv_cnt);
+
+
+
+    LOOP_IMG_BATCH:
+    for (IdxType i = 0; i < n_outputs; ++i) {
+      // Load the batch-norm parameters for this output
+      NormComp nc;
+      load_kh(nc, kh_mem, kh_index);
+
+      bin_conv(
+          wt_mem,
+          nc,
+          dmem,
+          d_i_idx_list[bin_conv_cnt],
+		  d_o_idx_list[bin_conv_cnt],
+          n_inputs_list[bin_conv_cnt],
+          o_index,
+          i == 0 ? 1 : 0,         // new_batch
+          width_mode_list[bin_conv_cnt],
+          norm_mode_list[bin_conv_cnt]
+      );
+
+      kh_index++;
+      o_index++;
+    }
+    bin_conv_cnt++;
+    if(bin_conv_cnt==16) bin_conv_cnt = 0;
+}
 // -----------------------------------------------------------------------
 // Module to do the first conv layer
 // -----------------------------------------------------------------------
@@ -867,42 +914,13 @@ void top(
 
     printf("%d\n", (unsigned int)kh_index);
 
-    ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
-    ap_uint<1> d_o_idx_list[]  =         {1,  0,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1  };
-    const Address n_inputs_list[] =      {128,128,256,256,256,256,256,256,512,512,512,512,512,512,512,512};
-    const Address o_index_list[] =             {0,  0,  0,  128,0,  128,256,384,0,  64, 128,192,256,320,384,448};
-    const ap_uint<2> width_mode_list[] = {2,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0  };
-    const ap_uint<2> norm_mode_list[] =  {2,  1,  2,  2,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,  2  };
-    const Address n_outputs_list[] =     {128,256,128,128,128,128,128,128,64, 64, 64,64,  64, 64, 64, 64 };
+    bin_conv_wrapper(
+        wt_mem,
+        dmem,
+    	kh_mem
+    );
 
-    o_index = o_index_list[bin_conv_cnt];
-    kh_index = 0;
-    printf("bin_conv_cnt=%d\n", bin_conv_cnt);
-    LOOP_IMG_BATCH:
-    for (IdxType i = 0; i < n_outputs; ++i) {
-      // Load the batch-norm parameters for this output
-      NormComp nc;
-      load_kh(nc, kh_mem, kh_index);
 
-      bin_conv(
-          wt_mem,
-          nc,
-          dmem,
-          d_i_idx_list[bin_conv_cnt],
-		  d_o_idx_list[bin_conv_cnt],
-          n_inputs_list[bin_conv_cnt],
-          o_index,
-          i == 0 ? 1 : 0,         // new_batch
-          width_mode_list[bin_conv_cnt],
-          norm_mode_list[bin_conv_cnt]
-      );
-
-      kh_index++;
-      o_index++;
-    }
-
-    bin_conv_cnt++;
-    if(bin_conv_cnt==16) bin_conv_cnt = 0;
   }
   else {
 	//printf("bin_dense\n");
