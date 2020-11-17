@@ -685,38 +685,12 @@ void fp_conv(
 
 }
 
+
 void bin_dense(
     const Word wt_mem[CONVOLVERS][C_WT_WORDS],
     const Word kh_mem[KH_WORDS],
-    Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
-    ap_uint<2> layer_type_i,
-    ap_uint<1> d_i_idx_i,
-    ap_uint<1> d_o_idx_i,
-    const Address o_index_i,
-    const unsigned n_inputs_i,
-    const unsigned n_outputs_i
+    Word dmem[2][CONVOLVERS][64]
 ) {
-  //assert(n_outputs % WORD_SIZE == 0);
-  assert(layer_type_i == LAYER_DENSE || n_outputs_i == 10);
-  assert(n_inputs_i/WORD_SIZE % CONVOLVERS == 0);
-  //printf("%08x,%08x,%08x,%08x,%08x,%08x\n", (unsigned int) layer_type,
-  //		                        (unsigned int) (d_i_idx),
-  //								(unsigned int) (d_o_idx),
-  //								(unsigned int) (o_index),
-  //								(unsigned int) (n_inputs),
-  //								(unsigned int) (n_outputs));
-
-  ap_uint<32> tmp1;
-  tmp1(31,28) = layer_type_i;
-  tmp1(27,24) = d_i_idx_i;
-  tmp1(23,20) = d_o_idx_i;
-  tmp1(19, 8) = o_index_i;
-  tmp1(7,  0) = 0;
-
-  ap_uint<32> tmp2;
-  tmp2(31,16) = n_inputs_i;
-  tmp2(15, 0) = n_outputs_i;
-  //printf("0x%08x,0x%08x\n", (unsigned int) tmp1, (unsigned int) tmp2);
   static char ctrl_i = 0;
   ap_uint<2> layer_type;
   ap_uint<1> d_i_idx;
@@ -744,6 +718,11 @@ void bin_dense(
 
   n_inputs    = tmp2_list[ctrl_i](31,16);
   n_outputs   = tmp2_list[ctrl_i](15, 0);
+
+  //assert(n_outputs % WORD_SIZE == 0);
+  assert(layer_type == LAYER_DENSE || n_outputs == 10);
+  assert(n_inputs/WORD_SIZE % CONVOLVERS == 0);
+
 
   ctrl_i++;
   if(ctrl_i==37) ctrl_i=0;
@@ -849,6 +828,31 @@ void bin_dense(
   }
 }
 
+void bin_dense_wrapper(
+    const Word wt_mem[CONVOLVERS][C_WT_WORDS],
+    const Word kh_mem[KH_WORDS],
+	hls::stream< Word > & Input_1,
+	hls::stream< Word > & Output_1
+) {
+	Word dmem[2][CONVOLVERS][64];
+	for(int i=0; i<2; i++)
+	  for(int j=0; j<2; j++)
+		for(int k=0; k<64; k++){
+			dmem[i][j][k] = Input_1.read();
+		}
+
+	bin_dense(
+		wt_mem,
+	    kh_mem,
+	    dmem
+	);
+	for(int i=0; i<2; i++)
+	  for(int j=0; j<2; j++)
+		for(int k=0; k<64; k++){
+			Output_1.write(dmem[i][j][k]);
+		}
+}
+
 // -----------------------------------------------------------------------
 // Accelerator top module
 // -----------------------------------------------------------------------
@@ -872,6 +876,10 @@ void top(
 	hls::stream< Word > bin_conv_in1("bin_conv_in1");
 	hls::stream< Word > bin_conv_in2("bin_conv_in2");
 	hls::stream< Word > bin_conv_out1("bin_conv_out1");
+	hls::stream< Word > bin_dense_in1("bin_dense_in1");
+	hls::stream< Word > bin_dense_in2("bin_dense_in2");
+	hls::stream< Word > bin_dense_out1("bin_dense_out1");
+
 
 	static int bin_conv_cnt = 0;
 
@@ -1027,20 +1035,28 @@ void top(
   	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
         for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
           dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
-
-
   }
   else {
+
+	for(int i=0; i<2; i++)
+	  for(int j=0; j<2; j++)
+		for(int k=0; k<64; k++){
+			bin_dense_in1.write(dmem[i][j][k]);
+		}
+
 	//printf("bin_dense\n");
-    bin_dense(
+	  bin_dense_wrapper(
         wt_mem,
         kh_mem,
-        dmem,
-        layer_type,
-        d_i_idx, d_o_idx,
-        o_index,
-        n_inputs, n_outputs
+        bin_dense_in1,
+		bin_dense_out1
     );
+
+	for(int i=0; i<2; i++)
+	  for(int j=0; j<2; j++)
+		for(int k=0; k<64; k++){
+			dmem[i][j][k] = bin_dense_out1.read();
+		}
 
     o_index += n_outputs;
   } // layer_type
