@@ -778,7 +778,7 @@ void bin_dense(
     if (layer_type == LAYER_DENSE) {
       Address kh_addr = o / KH_PER_WORD;
       Word kh_word = kh_mem[kh_addr];
-
+      printf("kh_addr: %d\n", (unsigned int) kh_addr);
       NormComp nc;
       IdxType kh_off = o % KH_PER_WORD;
       if (kh_off == 0)
@@ -794,7 +794,7 @@ void bin_dense(
     } else {
       Address kh_addr = o / (const unsigned)2;
       Word kh_word = kh_mem[kh_addr];
-
+      printf("kh_addr: %d\n", (unsigned int) kh_addr);
       KType ki;  HType hi;
       IdxType kh_off = o % 2;
       if (kh_off == 0) {
@@ -829,16 +829,29 @@ void bin_dense(
 }
 
 void bin_dense_wrapper(
-    const Word wt_mem[CONVOLVERS][C_WT_WORDS],
-    const Word kh_mem[KH_WORDS],
 	hls::stream< Word > & Input_1,
+	hls::stream< Word > & Input_2,
 	hls::stream< Word > & Output_1
 ) {
 	Word dmem[2][CONVOLVERS][64];
+	Word wt_mem[CONVOLVERS][C_WT_WORDS];
+	Word kh_mem[KH_WORDS];
+
+    for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
+      for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
+      {
+    	wt_mem[wt_mem_i][wt_mem_j] = Input_1.read();
+      }
+
+    for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
+    {
+    	kh_mem[kh_i] = Input_1.read();
+    }
+
 	for(int i=0; i<2; i++)
 	  for(int j=0; j<2; j++)
 		for(int k=0; k<64; k++){
-			dmem[i][j][k] = Input_1.read();
+			dmem[i][j][k] = Input_2.read();
 		}
 
 	bin_dense(
@@ -846,6 +859,7 @@ void bin_dense_wrapper(
 	    kh_mem,
 	    dmem
 	);
+
 	for(int i=0; i<2; i++)
 	  for(int j=0; j<2; j++)
 		for(int k=0; k<64; k++){
@@ -1041,14 +1055,24 @@ void top(
 	for(int i=0; i<2; i++)
 	  for(int j=0; j<2; j++)
 		for(int k=0; k<64; k++){
-			bin_dense_in1.write(dmem[i][j][k]);
+			bin_dense_in2.write(dmem[i][j][k]);
 		}
+
+    for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
+      for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
+      {
+    	bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+      }
+
+    for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
+	{
+		bin_dense_in1.write(kh_mem[kh_i]);
+	}
 
 	//printf("bin_dense\n");
 	  bin_dense_wrapper(
-        wt_mem,
-        kh_mem,
         bin_dense_in1,
+		bin_dense_in2,
 		bin_dense_out1
     );
 
