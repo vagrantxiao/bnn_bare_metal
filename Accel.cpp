@@ -4,11 +4,14 @@
 #include "Accel.h"
 #include "AccelPrint.h"
 #include "stdio.h"
+#include "fp_conv_par.h"
 
 const static Word m1("0x5555555555555555", 16);
 const static Word m2("0x3333333333333333", 16);
 const static Word m4("0x0f0f0f0f0f0f0f0f", 16);
 const static Word h01("0x0101010101010101", 16);
+
+int fp_conv_cnt = 0;
 
 // -----------------------------------------------------------------------
 // Hardware-specific print helpers
@@ -567,6 +570,7 @@ void fp_conv(
   for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
   {
   	kh_mem[kh_i] = Input_1.read();
+  	printf("%08x,\n", (unsigned int) kh_mem[kh_i]);
   }
 
   // Parallelized across m, better for HLS
@@ -589,6 +593,7 @@ void fp_conv(
     // linearly across wt_mem, 3 weights per 64-bit word
     DB_PRINT(3, "n = %u\n", n.to_int());
     Word wt_word =  Input_1.read();//wt_mem[n % CONVOLVERS][n / CONVOLVERS];
+    printf("%08x,\n", (unsigned int) wt_word);
     LOOP_LOAD_WTS:
     for (ap_uint<2> m = 0; m < M; ++m) {
       wtbuf[m] = wt_word((m+1)*WT_SIZE-1, m*WT_SIZE);
@@ -778,7 +783,7 @@ void bin_dense(
     if (layer_type == LAYER_DENSE) {
       Address kh_addr = o / KH_PER_WORD;
       Word kh_word = kh_mem[kh_addr];
-      printf("kh_addr: %d\n", (unsigned int) kh_addr);
+
       NormComp nc;
       IdxType kh_off = o % KH_PER_WORD;
       if (kh_off == 0)
@@ -794,7 +799,7 @@ void bin_dense(
     } else {
       Address kh_addr = o / (const unsigned)2;
       Word kh_word = kh_mem[kh_addr];
-      printf("kh_addr: %d\n", (unsigned int) kh_addr);
+
       KType ki;  HType hi;
       IdxType kh_off = o % 2;
       if (kh_off == 0) {
@@ -986,13 +991,19 @@ void top(
 
     for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
 	{
-		fp_conv_in1.write(kh_mem[kh_i]);
+		//fp_conv_in1.write(kh_mem[kh_i]);
+		fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
+		fp_conv_cnt++;
 	}
 
     for(int n=0; n<128; n++)
     {
-    	fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
+    	//fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
+    	fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
+    	fp_conv_cnt++;
     }
+
+    if(fp_conv_cnt == 192) fp_conv_cnt = 0;
 
 
 
