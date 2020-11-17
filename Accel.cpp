@@ -689,16 +689,64 @@ void bin_dense(
     const Word wt_mem[CONVOLVERS][C_WT_WORDS],
     const Word kh_mem[KH_WORDS],
     Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
-    ap_uint<2> layer_type,
-    ap_uint<1> d_i_idx,
-    ap_uint<1> d_o_idx,
-    const Address o_index,
-    const unsigned n_inputs,
-    const unsigned n_outputs
+    ap_uint<2> layer_type_i,
+    ap_uint<1> d_i_idx_i,
+    ap_uint<1> d_o_idx_i,
+    const Address o_index_i,
+    const unsigned n_inputs_i,
+    const unsigned n_outputs_i
 ) {
   //assert(n_outputs % WORD_SIZE == 0);
-  assert(layer_type == LAYER_DENSE || n_outputs == 10);
-  assert(n_inputs/WORD_SIZE % CONVOLVERS == 0);
+  assert(layer_type_i == LAYER_DENSE || n_outputs_i == 10);
+  assert(n_inputs_i/WORD_SIZE % CONVOLVERS == 0);
+  //printf("%08x,%08x,%08x,%08x,%08x,%08x\n", (unsigned int) layer_type,
+  //		                        (unsigned int) (d_i_idx),
+  //								(unsigned int) (d_o_idx),
+  //								(unsigned int) (o_index),
+  //								(unsigned int) (n_inputs),
+  //								(unsigned int) (n_outputs));
+
+  ap_uint<32> tmp1;
+  tmp1(31,28) = layer_type_i;
+  tmp1(27,24) = d_i_idx_i;
+  tmp1(23,20) = d_o_idx_i;
+  tmp1(19, 8) = o_index_i;
+  tmp1(7,  0) = 0;
+
+  ap_uint<32> tmp2;
+  tmp2(31,16) = n_inputs_i;
+  tmp2(15, 0) = n_outputs_i;
+  //printf("0x%08x,0x%08x\n", (unsigned int) tmp1, (unsigned int) tmp2);
+  static char ctrl_i = 0;
+  ap_uint<2> layer_type;
+  ap_uint<1> d_i_idx;
+  ap_uint<1> d_o_idx;
+  Address o_index;
+  unsigned n_inputs;
+  unsigned n_outputs;
+  ap_uint<32> tmp1_list[] = {0x21000000,0x21002000,0x21004000,0x21006000,0x21008000,0x2100a000,0x2100c000,0x2100e000,
+		                      0x21010000,0x21012000,0x21014000,0x21016000,0x21018000,0x2101a000,0x2101c000,0x2101e000,
+						   	  0x21020000,0x21022000,0x21024000,0x21026000,0x21028000,0x2102a000,0x2102c000,0x2102e000,
+							  0x21030000,0x21032000,0x21034000,0x21036000,0x21038000,0x2103a000,0x2103c000,0x2103e000,
+							  0x20100000,0x20110000,0x20120000,0x20130000,0x31000000};
+
+
+  ap_uint<32> tmp2_list[] = {0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,
+		                      0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,
+							  0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,
+							  0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,0x20000020,
+							  0x04000100,0x04000100,0x04000100,0x04000100,0x0400000a};
+
+  layer_type  = tmp1_list[ctrl_i](31,28);
+  d_i_idx     = tmp1_list[ctrl_i](27,24);
+  d_o_idx     = tmp1_list[ctrl_i](23,20);
+  o_index     = tmp1_list[ctrl_i](19, 8);
+
+  n_inputs    = tmp2_list[ctrl_i](31,16);
+  n_outputs   = tmp2_list[ctrl_i](15, 0);
+
+  ctrl_i++;
+  if(ctrl_i==37) ctrl_i=0;
 
   DenseSum sum_m[CONVOLVERS];
   // for last layer
@@ -712,6 +760,7 @@ void bin_dense(
     const Address o_addr = (o_index+o)/WORD_SIZE;
     const ap_uint<6> o_offset = (o_index+o) % WORD_SIZE;
     Word o_word = dmem[d_o_idx][o_addr%CONVOLVERS][o_addr/CONVOLVERS];
+    //printf("i,%d, j,%d, k,%d\n", (unsigned int) d_o_idx, (unsigned int) (o_addr%CONVOLVERS), (unsigned int)(o_addr/CONVOLVERS));
 
     DenseSum sum = 0;
 
@@ -723,7 +772,9 @@ void bin_dense(
         // in_wrd addr = [(i/WORD_SIZE+j) % CONVOLVERS][(i/WORD_SIZE+j) / CONVOLVERS]
         // wt_wrd addr = [wt_addr % CONVOLVERS][wt_addr / CONVOLVERS]
         const Word in_wrd = dmem[d_i_idx][j][i/WORD_SIZE/CONVOLVERS];
+        //printf("i,%d, j,%d, k,%d\n", (unsigned int) d_i_idx, (unsigned int) (j), (unsigned int)(i/WORD_SIZE/CONVOLVERS));
         const Word wt_wrd = wt_mem[j][wt_addr / CONVOLVERS];
+
 
         Word x = wt_wrd ^ in_wrd;
 
@@ -785,6 +836,7 @@ void bin_dense(
     }
 
     dmem[d_o_idx][o_addr%CONVOLVERS][o_addr/CONVOLVERS] = o_word;
+    //printf("i,%d, j,%d, k,%d\n", (unsigned int) d_o_idx, (unsigned int) (o_addr%CONVOLVERS), (unsigned int)(o_addr/CONVOLVERS));
   } // n_outputs
 
   // Here we are using o_index as a bit index, not a word index!
@@ -793,6 +845,7 @@ void bin_dense(
     o_word(7,0) = prediction(7,0);
     o_word(WORD_SIZE-1, 8) = 0;
     dmem[d_o_idx][0][0] = o_word;
+    //printf("i,%d, j,%d, k,%d\n", (unsigned int) d_o_idx, (unsigned int) (0), (unsigned int)(0));
   }
 }
 
