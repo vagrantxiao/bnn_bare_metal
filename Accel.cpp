@@ -491,13 +491,13 @@ void bin_conv_wrapper(
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
     	wt_mem[wt_mem_i][wt_mem_j] = Input_1.read();
-    	//printf("%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j]);
+    	//printf("%08x%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j](63,32), (unsigned int) wt_mem[wt_mem_i][wt_mem_j](31,0));
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
     {
     	kh_mem[kh_i] = Input_1.read();
-    	//printf("%08x,\n", (unsigned int) kh_mem[kh_i]);
+    	//printf("%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
     }
 
 
@@ -1051,15 +1051,15 @@ void top(
     for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
-    	bin_conv_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
-    	//bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
+    	//bin_conv_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+    	bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
     	bin_conv_cnt++;
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
 	{
-		bin_conv_in1.write(kh_mem[kh_i]);
-		//bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
+		//bin_conv_in1.write(kh_mem[kh_i]);
+		bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
 		bin_conv_cnt++;
 	}
 
