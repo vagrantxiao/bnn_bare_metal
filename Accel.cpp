@@ -6,8 +6,7 @@
 #include "stdio.h"
 #include "fp_conv_par.h"
 #include "bin_conv_par.h"
-#include "bin_dense_par0.h"
-#include "bin_dense_par1.h"
+#include "bin_dense_par.h"
 
 const static Word m1("0x5555555555555555", 16);
 const static Word m2("0x3333333333333333", 16);
@@ -853,13 +852,13 @@ void bin_dense_wrapper(
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
     	wt_mem[wt_mem_i][wt_mem_j] = Input_1.read();
-    	//printf("%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j](63,32));
+    	//printf("%08x%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j](63,32), (unsigned int) wt_mem[wt_mem_i][wt_mem_j](31,0));
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
     {
     	kh_mem[kh_i] = Input_1.read();
-    	//printf("%08x,\n", (unsigned int) kh_mem[kh_i](63,32));
+    	//printf("%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
     }
 
 	for(int i=0; i<2; i++)
@@ -1086,24 +1085,16 @@ void top(
     for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
-    	bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
-
-    	Word in_tmp;
-    	in_tmp(63,32) = bin_dense_wt1[bin_dense_cnt];
-    	in_tmp(31, 0) = bin_dense_wt0[bin_dense_cnt];
-    	//bin_dense_in1.write(in_tmp);
+    	//bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+    	bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
     	bin_dense_cnt++;
 
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
 	{
-		bin_dense_in1.write(kh_mem[kh_i]);
-
-		Word in_tmp;
-    	in_tmp(63,32) = bin_dense_wt1[bin_dense_cnt];
-    	in_tmp(31, 0) = bin_dense_wt0[bin_dense_cnt];
-    	//bin_dense_in1.write(in_tmp);
+		//bin_dense_in1.write(kh_mem[kh_i]);
+    	bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
     	bin_dense_cnt++;
 	}
 
