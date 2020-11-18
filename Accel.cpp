@@ -5,6 +5,9 @@
 #include "AccelPrint.h"
 #include "stdio.h"
 #include "fp_conv_par.h"
+#include "bin_conv_par.h"
+#include "bin_dense_par0.h"
+#include "bin_dense_par1.h"
 
 const static Word m1("0x5555555555555555", 16);
 const static Word m2("0x3333333333333333", 16);
@@ -12,6 +15,8 @@ const static Word m4("0x0f0f0f0f0f0f0f0f", 16);
 const static Word h01("0x0101010101010101", 16);
 
 int fp_conv_cnt = 0;
+int bin_conv_cnt = 0;
+int bin_dense_cnt = 0;
 
 // -----------------------------------------------------------------------
 // Hardware-specific print helpers
@@ -486,11 +491,13 @@ void bin_conv_wrapper(
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
     	wt_mem[wt_mem_i][wt_mem_j] = Input_1.read();
+    	//printf("%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j]);
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
     {
     	kh_mem[kh_i] = Input_1.read();
+    	//printf("%08x,\n", (unsigned int) kh_mem[kh_i]);
     }
 
 
@@ -570,7 +577,7 @@ void fp_conv(
   for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
   {
   	kh_mem[kh_i] = Input_1.read();
-  	printf("%08x,\n", (unsigned int) kh_mem[kh_i]);
+  	//printf("%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
   }
 
   // Parallelized across m, better for HLS
@@ -593,7 +600,7 @@ void fp_conv(
     // linearly across wt_mem, 3 weights per 64-bit word
     DB_PRINT(3, "n = %u\n", n.to_int());
     Word wt_word =  Input_1.read();//wt_mem[n % CONVOLVERS][n / CONVOLVERS];
-    printf("%08x,\n", (unsigned int) wt_word);
+    //printf("%08x%08x,\n", (unsigned int) wt_word(63,32), (unsigned int) wt_word(31,0));
     LOOP_LOAD_WTS:
     for (ap_uint<2> m = 0; m < M; ++m) {
       wtbuf[m] = wt_word((m+1)*WT_SIZE-1, m*WT_SIZE);
@@ -846,11 +853,13 @@ void bin_dense_wrapper(
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
     	wt_mem[wt_mem_i][wt_mem_j] = Input_1.read();
+    	//printf("%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j](63,32));
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
     {
     	kh_mem[kh_i] = Input_1.read();
+    	//printf("%08x,\n", (unsigned int) kh_mem[kh_i](63,32));
     }
 
 	for(int i=0; i<2; i++)
@@ -1043,13 +1052,18 @@ void top(
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
     	bin_conv_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+    	//bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
+    	bin_conv_cnt++;
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
 	{
 		bin_conv_in1.write(kh_mem[kh_i]);
+		//bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
+		bin_conv_cnt++;
 	}
 
+    if(bin_conv_cnt == 75936) bin_conv_cnt = 0;
     bin_conv_wrapper(
     	bin_conv_in1,
 		bin_conv_in2,
@@ -1073,13 +1087,27 @@ void top(
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
       {
     	bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+
+    	Word in_tmp;
+    	in_tmp(63,32) = bin_dense_wt1[bin_dense_cnt];
+    	in_tmp(31, 0) = bin_dense_wt0[bin_dense_cnt];
+    	//bin_dense_in1.write(in_tmp);
+    	bin_dense_cnt++;
+
       }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
 	{
 		bin_dense_in1.write(kh_mem[kh_i]);
+
+		Word in_tmp;
+    	in_tmp(63,32) = bin_dense_wt1[bin_dense_cnt];
+    	in_tmp(31, 0) = bin_dense_wt0[bin_dense_cnt];
+    	//bin_dense_in1.write(in_tmp);
+    	bin_dense_cnt++;
 	}
 
+    if (bin_dense_cnt == 175602) bin_dense_cnt = 0;
 	//printf("bin_dense\n");
 	  bin_dense_wrapper(
         bin_dense_in1,
