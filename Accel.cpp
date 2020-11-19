@@ -4,7 +4,7 @@
 #include "Accel.h"
 #include "AccelPrint.h"
 #include "stdio.h"
-#include "fp_conv_par.h"
+
 #include "bin_conv_par.h"
 #include "bin_dense_par.h"
 
@@ -880,10 +880,33 @@ void bin_dense_wrapper(
 		}
 }
 
+void data_gen(
+	int image_num,
+	hls::stream< Word > & Output_1
+) {
+  #include "data.h"
+  for(int i=0; i<image_num*1024; i++)
+  {
+	  Output_1.write(data_in[i]);
+  }
+}
+
+void fp_conv_gen(
+	hls::stream< Word > & Output_1
+) {
+#include "fp_conv_par.h"
+	for(int kh_i=0; kh_i<192; kh_i++)
+  {
+	  Output_1.write(fp_conv_wt[kh_i]);
+  }
+}
+
+
 // -----------------------------------------------------------------------
 // Accelerator top module
 // -----------------------------------------------------------------------
 void top(
+	hls::stream< Word > & Input_1,
     Word wt_i[WT_WORDS],
     Word kh_i[KH_WORDS],
     Word dmem_i[DMEM_WORDS],
@@ -915,25 +938,10 @@ void top(
 
 	if(layer_cnt == 0) {
 		for(int in_data_cnt=0; in_data_cnt<1024; in_data_cnt++) {
-			dmem[1][0][in_data_cnt] = dmem_i[in_data_cnt];
-		}
-	    for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
-		{
-			//fp_conv_in1.write(kh_mem[kh_i]);
-			fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
-			fp_conv_cnt++;
+			dmem[1][0][in_data_cnt] = Input_1.read();
 		}
 
-	    for(int n=0; n<128; n++)
-	    {
-	    	//fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
-	    	fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
-	    	fp_conv_cnt++;
-	    }
-
-	    if(fp_conv_cnt == 192) fp_conv_cnt = 0;
-
-
+		fp_conv_gen(fp_conv_in1);
 
 	    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
 	  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)

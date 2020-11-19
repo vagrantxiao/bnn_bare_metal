@@ -7,6 +7,7 @@
 #include "label.h"
 
 int main(int argc, char** argv) {
+  hls::stream< Word > data_gen_out1("data_gen_out1");
   unsigned N_IMG;
   if (argc < 2) {
     printf ("We will use default N_IMG = 1\n");
@@ -22,6 +23,8 @@ int main(int argc, char** argv) {
 
 	Word dmem_o[DMEM_O_WORDS];
 
+	data_gen(N_IMG, data_gen_out1);
+
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("Processing Numer %d image\n", i);
@@ -29,6 +32,7 @@ int main(int argc, char** argv) {
 		{
 			printf("Processing layer %d\n", j);
 			top(
+				data_gen_out1,
 				&wt_i[WT_WORDS*j],
 				&kh_i[KH_WORDS*j],
 				&data_in[1024*i],

@@ -104,6 +104,7 @@ void load_kh(T& comp, const Word kh_mem[KH_WORDS], Address idx) {
 #pragma SDS data data_mover(dmem_i:AXIDMA_SIMPLE, dmem_o:AXIDMA_SIMPLE)
 #pragma SDS data data_mover(wt_i:AXIDMA_SIMPLE, kh_i:AXIDMA_SIMPLE)
 void top(
+	hls::stream< Word > & Input_1,
     Word wt_i[WT_WORDS],
     Word kh_i[KH_WORDS],
     Word dmem_i[DMEM_WORDS],
@@ -118,4 +119,8 @@ void top(
     const ap_uint<2> norm_mode    // 0='do nothing', 1='do norm', 2='do pool'
 );
 
+void data_gen(
+	int image_num,
+	hls::stream< Word > & Output_1
+);
 #endif
