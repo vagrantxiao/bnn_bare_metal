@@ -568,10 +568,9 @@ void fp_conv(
   const unsigned N = 128;
   Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
 
-  for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-	for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-      for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-        dmem[dmem_i][dmem_j][dmem_k] = Input_2.read();
+  for(int in_data_cnt=0; in_data_cnt<1024; in_data_cnt++) {
+    dmem[1][0][in_data_cnt] = Input_2.read();
+  }
 
   for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
   {
@@ -937,20 +936,13 @@ void top(
 	static int layer_cnt = 0;
 
 	if(layer_cnt == 0) {
-		for(int in_data_cnt=0; in_data_cnt<1024; in_data_cnt++) {
-			dmem[1][0][in_data_cnt] = Input_1.read();
-		}
+
 
 		fp_conv_gen(fp_conv_in1);
 
-	    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-	  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-	        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-	        	fp_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
-
 	    fp_conv(
 	    	fp_conv_in1,//wt_mem,
-			fp_conv_in2,
+			Input_1,
 			fp_conv_out1
 	    );
 
