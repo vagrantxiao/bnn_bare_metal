@@ -28,9 +28,9 @@ int main(int argc, char** argv) {
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("Processing Numer %d image\n", i);
-		for(j=0; j<37; j++)
-		{
-			printf("Processing layer %d\n", j);
+		//for(j=0; j<37; j++)
+		//{
+			//printf("Processing layer %d\n", j);
 			top(
 				data_gen_out1,
 				&wt_i[WT_WORDS*j],
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 				width_mode[j],  // 0=8'b, 1=16'b, 2=32'b
 				norm_mode[j]    // 0='do nothing', 1='do norm', 2='do pool'
 				);
-		}
+		//}
 		ap_int<8> p = 0;
         p(7,0) = dmem_o[0](7,0);
 

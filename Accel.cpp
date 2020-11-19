@@ -5,8 +5,7 @@
 #include "AccelPrint.h"
 #include "stdio.h"
 
-#include "bin_conv_par.h"
-#include "bin_dense_par.h"
+
 
 const static Word m1("0x5555555555555555", 16);
 const static Word m2("0x3333333333333333", 16);
@@ -536,8 +535,8 @@ void bin_conv_wrapper(
     if(bin_conv_cnt == 15)
     {
 		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+		  for(unsigned int dmem_j=0; dmem_j<2; dmem_j++)
+			for(unsigned int dmem_k=0; dmem_k<64; dmem_k++)
 			  Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
     }
 
@@ -851,9 +850,12 @@ void bin_dense_wrapper(
 	hls::stream< Word > & Input_2,
 	hls::stream< Word > & Output_1
 ) {
-	Word dmem[2][CONVOLVERS][64];
+	static Word dmem[2][CONVOLVERS][64];
 	Word wt_mem[CONVOLVERS][C_WT_WORDS];
 	Word kh_mem[KH_WORDS];
+	static char bin_dense_cnt = 0;
+
+	printf("bin_dense_cnt=%d\n", bin_dense_cnt);
 
     for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
@@ -868,10 +870,20 @@ void bin_dense_wrapper(
     	//printf("%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
     }
 
+	if(bin_dense_cnt == 0)
+	{
+		for(int i=0; i<2; i++)
+		  for(int j=0; j<2; j++)
+			for(int k=0; k<64; k++){
+				dmem[i][j][k] = Input_2.read();
+				printf("%08x%08x\n", (unsigned int) dmem[i][j][k](63,32), (unsigned int) dmem[i][j][k](63,32));
+			}
+	}
+
 	for(int i=0; i<2; i++)
 	  for(int j=0; j<2; j++)
 		for(int k=0; k<64; k++){
-			dmem[i][j][k] = Input_2.read();
+	      printf("before: %08x%08x\n", (unsigned int) dmem[i][j][k](63,32), (unsigned int) dmem[i][j][k](63,32));
 		}
 
 	bin_dense(
@@ -883,8 +895,20 @@ void bin_dense_wrapper(
 	for(int i=0; i<2; i++)
 	  for(int j=0; j<2; j++)
 		for(int k=0; k<64; k++){
-			Output_1.write(dmem[i][j][k]);
+	      printf("after: %08x%08x\n", (unsigned int) dmem[i][j][k](63,32), (unsigned int) dmem[i][j][k](63,32));
 		}
+
+	if(bin_dense_cnt == 36)
+	{
+		for(int i=0; i<2; i++)
+		  for(int j=0; j<2; j++)
+			for(int k=0; k<64; k++){
+				Output_1.write(dmem[i][j][k]);
+			}
+	}
+	bin_dense_cnt++;
+	if(bin_dense_cnt==37) bin_dense_cnt=0;
+
 }
 
 void data_gen(
@@ -908,6 +932,25 @@ void fp_conv_gen(
   }
 }
 
+void bin_conv_gen(
+	hls::stream< Word > & Output_1
+) {
+#include "bin_conv_par.h"
+	for(int i=0; i<75936; i++)
+  {
+	  Output_1.write(bin_conv_wt[i]);
+  }
+}
+
+void bin_dense_gen(
+	hls::stream< Word > & Output_1
+) {
+#include "bin_dense_par.h"
+	for(int i=0; i<175602; i++)
+  {
+	  Output_1.write(bin_dense_wt[i]);
+  }
+}
 
 // -----------------------------------------------------------------------
 // Accelerator top module
@@ -942,11 +985,14 @@ void top(
 
 	static int bin_conv_cnt = 0;
 	static int layer_cnt = 0;
+	fp_conv_gen(fp_conv_in1);
+	bin_conv_gen(bin_conv_in1);
+	bin_dense_gen(bin_dense_in1);
 
 	if(layer_cnt == 0) {
+		printf("1Processing layer %d\n", layer_cnt);
 
 
-		fp_conv_gen(fp_conv_in1);
 
 	    fp_conv(
 	    	fp_conv_in1,//wt_mem,
@@ -960,85 +1006,39 @@ void top(
 
 
 	while(layer_cnt >=1 && layer_cnt <= 16) {
+		printf("2Processing layer %d\n", layer_cnt);
 
-
-		for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
-		  for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
-		  {
-			//bin_conv_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
-			bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
-			bin_conv_cnt++;
-		  }
-
-		for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
-		{
-			//bin_conv_in1.write(kh_mem[kh_i]);
-			bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
-			bin_conv_cnt++;
-		}
-
-		if(bin_conv_cnt == 75936) bin_conv_cnt = 0;
 		bin_conv_wrapper(
 			bin_conv_in1,
 			fp_conv_out1,
 			bin_conv_out1
 		);
 
-		if(layer_cnt == 16)
-		{
-			for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-			  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-				for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-				  dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
-		}
-
 		layer_cnt++;
 	}
 
-	if(layer_cnt >=17) {
+	while(layer_cnt >=17 && layer_cnt<=53) {
+		printf("3Processing layer %d\n", layer_cnt);
 
-		for(int i=0; i<2; i++)
-		  for(int j=0; j<2; j++)
-			for(int k=0; k<64; k++){
-				bin_dense_in2.write(dmem[i][j][k]);
-			}
-
-		for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
-		  for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
-		  {
-			//bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
-			bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
-			bin_dense_cnt++;
-
-		  }
-
-		for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
-		{
-			//bin_dense_in1.write(kh_mem[kh_i]);
-			bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
-			bin_dense_cnt++;
-		}
-
-		if (bin_dense_cnt == 175602) bin_dense_cnt = 0;
 		//printf("bin_dense\n");
 		  bin_dense_wrapper(
 			bin_dense_in1,
-			bin_dense_in2,
+			bin_conv_out1,
 			bin_dense_out1
 		);
 
-		for(int i=0; i<2; i++)
-		  for(int j=0; j<2; j++)
-			for(int k=0; k<64; k++){
-				dmem[i][j][k] = bin_dense_out1.read();
-			}
 
+		layer_cnt++;
 	} // layer_type
 
-	if(layer_cnt ==53) {
-      dmem_o[0] = dmem[0][0][0];
-	}
-	layer_cnt++;
+	for(int i=0; i<2; i++)
+	  for(int j=0; j<2; j++)
+		for(int k=0; k<64; k++){
+			dmem[i][j][k] = bin_dense_out1.read();
+		}
+
+    dmem_o[0] = dmem[0][0][0];
+
 	if(layer_cnt == 54) layer_cnt = 0;
 
 }
