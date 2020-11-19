@@ -907,232 +907,135 @@ void top(
 	hls::stream< Word > bin_dense_in2("bin_dense_in2");
 	hls::stream< Word > bin_dense_out1("bin_dense_out1");
 
+	static Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
+
 
 	static int bin_conv_cnt = 0;
+	static int layer_cnt = 0;
 
-
-  DB_PRINT(2, "==== Entering Accel ====\n");
-  const ap_uint<2> layer_type = layer_mode(2,1);
-  const unsigned width = 8 << width_mode;
-  DB_PRINT(1, "  Inputs  = %d\n", n_inputs.to_int());
-  DB_PRINT(1, "  Outputs = %d\n", n_outputs.to_int());
-  DB_PRINT(1, "  i_words = %d\n", input_words.to_int());
-  DB_PRINT(1, "  o_words = %d\n", output_words.to_int());
-  DB_PRINT(1, "  Width = %d\n", width);
-  DB_PRINT(1, "  layer_mode = %d %d\n", layer_mode[0]==0 ? 0 : 1, layer_type.to_int());
-  DB_PRINT(1, "  dmem_mode = %d\n", dmem_mode.to_int());
-  //printf("%d,%d,%d,%d,%d,%d,%d,%d\n",  (unsigned int) n_inputs,
-  //                                        (unsigned int) n_outputs,
-  //                                        (unsigned int) input_words,
-  //                                        (unsigned int) output_words,
-  //                                        (unsigned int) layer_mode,
-  //                                        (unsigned int) dmem_mode,
-  //                                        (unsigned int) width_mode,
-  //                                        (unsigned int) norm_mode);
-  //for(int i=0; i<DMEM_WORDS; i++){
-    //printf("dmem_i=%08x%08x\n",(unsigned int) dmem_i[i](63,32), (unsigned int) dmem_i[i](31,0));
-  //}
-  assert(width <= MAX_WIDTH);
-  assert(n_inputs != 0);
-  if (layer_type <= LAYER_CONV) {
-    assert(input_words % CONVOLVERS == 0);
-    assert(n_inputs*width*width <= DMEM_WORDS*WORD_SIZE);
-    assert(n_inputs*WT_SIZE <= WT_WORDS*WORD_SIZE);
-  }
-
-  static Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
-  static Word kh_mem[KH_WORDS];
-  static Word wt_mem[CONVOLVERS][C_WT_WORDS];
-  static Address kh_index = 0;
-  static Address o_index = 0;
-  //printf("d_i_idx,d_o_idx,n_inputs,o_index,new_batch,width_mode,norm_mode\n");
-  if (layer_mode[0]) {
-    kh_index = 0;
-    o_index = 0;
-  } else {
-    kh_index = kh_index[0];
-  }
-
-  ap_uint<1> d_i_idx = dmem_mode;
-  ap_uint<1> d_o_idx = ~dmem_mode;
-
-  // Data input
-  const ap_uint<5> words_per_image = 1 << (2*width_mode);
-  Address img_idx = 0;  // i / words_per_image;
-  IdxType img_off = 0;  // i % words_per_image;
-  LOOP_DMEM_I: for (Address i = 0; i < input_words; ++i) {
-    if (layer_type == LAYER_CONV) {
-      Address bank_idx = img_idx % CONVOLVERS;
-      Address bank_off = img_idx / CONVOLVERS;
-      dmem[d_i_idx][bank_idx][(bank_off<<(2*width_mode)) + img_off] = dmem_i[i];
-    }
-    else if (layer_type == LAYER_CONV1)
-      dmem[d_i_idx][i/C_DMEM_WORDS][i%C_DMEM_WORDS] = dmem_i[i];
-    else
-      dmem[d_i_idx][i%CONVOLVERS][i/CONVOLVERS] = dmem_i[i];
-
-    if (++img_off == words_per_image) {
-      img_off = 0;
-      ++img_idx;
-    }
-  }
-
-  // Weight input, we must copy every 64-bit Word from the interface
-  // into the accelerator
-  LOOP_WT_I: for (Address i = 0; i < C_WT_WORDS*CONVOLVERS; ++i) {
-    wt_mem[i%CONVOLVERS][i/CONVOLVERS] = wt_i[i];
-    //printf("wt_mem=%08x%08x\n", (unsigned int)wt_i[i](63,32), (unsigned int)wt_i[i](31,0));
-  }
-  //printf ("\nAccel Weights:\n");
-  //print_params3d(wt_mem[0], 0, n_inputs*n_outputs);
-
-  LOOP_KH_I: for (ap_uint<16> i = 0; i < KH_WORDS; ++i)
-  {
-	  kh_mem[i] = kh_i[i];
-	  //printf("kh_mem=%08x%08x\n", (unsigned int)kh_i[i](63,32), (unsigned int)kh_i[i](31,0));
-  }
-
-
-  if (layer_type == LAYER_CONV1) {
-    assert(n_inputs == 3);
-
-
-    for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
-	{
-		//fp_conv_in1.write(kh_mem[kh_i]);
-		fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
-		fp_conv_cnt++;
-	}
-
-    for(int n=0; n<128; n++)
-    {
-    	//fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
-    	fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
-    	fp_conv_cnt++;
-    }
-
-    if(fp_conv_cnt == 192) fp_conv_cnt = 0;
-
-
-
-    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-        	fp_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
-
-    fp_conv(
-    	fp_conv_in1,//wt_mem,
-		fp_conv_in2,
-		fp_conv_out1
-    );
-
-    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-          dmem[dmem_i][dmem_j][dmem_k] = fp_conv_out1.read();
-
-    kh_index += n_outputs;
-    o_index += n_outputs;
-  }
-  else if (layer_type == LAYER_CONV) {
-    assert(norm_mode != 2 || n_outputs % 4 == 0); // needed for pooling of 8x8 image
-    assert(n_inputs % CONVOLVERS == 0);
-
-
-    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-        	bin_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
-
-
-
-
-    for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
-      for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
-      {
-    	//bin_conv_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
-    	bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
-    	bin_conv_cnt++;
-      }
-
-    for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
-	{
-		//bin_conv_in1.write(kh_mem[kh_i]);
-		bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
-		bin_conv_cnt++;
-	}
-
-    if(bin_conv_cnt == 75936) bin_conv_cnt = 0;
-    bin_conv_wrapper(
-    	bin_conv_in1,
-		bin_conv_in2,
-		bin_conv_out1
-    );
-
-    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-          dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
-  }
-  else {
-
-	for(int i=0; i<2; i++)
-	  for(int j=0; j<2; j++)
-		for(int k=0; k<64; k++){
-			bin_dense_in2.write(dmem[i][j][k]);
+	if(layer_cnt == 0) {
+		for(int in_data_cnt=0; in_data_cnt<1024; in_data_cnt++) {
+			dmem[1][0][in_data_cnt] = dmem_i[in_data_cnt];
+		}
+	    for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
+		{
+			//fp_conv_in1.write(kh_mem[kh_i]);
+			fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
+			fp_conv_cnt++;
 		}
 
-    for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
-      for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
-      {
-    	//bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
-    	bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
-    	bin_dense_cnt++;
+	    for(int n=0; n<128; n++)
+	    {
+	    	//fp_conv_in1.write(wt_mem[n % CONVOLVERS][n / CONVOLVERS]);
+	    	fp_conv_in1.write(fp_conv_wt[fp_conv_cnt]);
+	    	fp_conv_cnt++;
+	    }
 
-      }
+	    if(fp_conv_cnt == 192) fp_conv_cnt = 0;
 
-    for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
-	{
-		//bin_dense_in1.write(kh_mem[kh_i]);
-    	bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
-    	bin_dense_cnt++;
+
+
+	    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+	  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+	        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+	        	fp_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
+
+	    fp_conv(
+	    	fp_conv_in1,//wt_mem,
+			fp_conv_in2,
+			fp_conv_out1
+	    );
+
+	    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+	  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+	        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+	          dmem[dmem_i][dmem_j][dmem_k] = fp_conv_out1.read();
 	}
 
-    if (bin_dense_cnt == 175602) bin_dense_cnt = 0;
-	//printf("bin_dense\n");
-	  bin_dense_wrapper(
-        bin_dense_in1,
-		bin_dense_in2,
-		bin_dense_out1
-    );
 
-	for(int i=0; i<2; i++)
-	  for(int j=0; j<2; j++)
-		for(int k=0; k<64; k++){
-			dmem[i][j][k] = bin_dense_out1.read();
+
+	if(layer_cnt >=1 && layer_cnt <= 16) {
+
+		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+				bin_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
+
+
+
+
+		for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
+		  for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
+		  {
+			//bin_conv_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+			bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
+			bin_conv_cnt++;
+		  }
+
+		for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
+		{
+			//bin_conv_in1.write(kh_mem[kh_i]);
+			bin_conv_in1.write(bin_conv_wt[bin_conv_cnt]);
+			bin_conv_cnt++;
 		}
 
-    o_index += n_outputs;
-  } // layer_type
+		if(bin_conv_cnt == 75936) bin_conv_cnt = 0;
+		bin_conv_wrapper(
+			bin_conv_in1,
+			bin_conv_in2,
+			bin_conv_out1
+		);
 
-  // Data output
-  ap_uint<5> words_per_out = words_per_image / ((norm_mode!=2) ? 1 : 4);
-  img_idx = 0;
-  img_off = 0;
-  LOOP_DMEM_O: for (Address i = 0; i < output_words; ++i) {
-    // exclude conv6 (width==8, norm_mode==2) here because it writes
-    // the output fmaps linearly
-    if (layer_type <= LAYER_CONV && !(width_mode == 0 && norm_mode == 2)) {
-      Address bank_idx = img_idx % CONVOLVERS;
-      Address bank_off = img_idx / CONVOLVERS;
-      dmem_o[i] = dmem[d_o_idx][bank_idx][bank_off*words_per_out + img_off];
-    }
-    else
-      dmem_o[i] = dmem[d_o_idx][i%CONVOLVERS][i/CONVOLVERS];
+		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+			  dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
+	}
 
-    if (++img_off == words_per_out) {
-      img_off = 0;
-      ++img_idx;
-    }
-  }
+	if(layer_cnt >=17) {
+
+		for(int i=0; i<2; i++)
+		  for(int j=0; j<2; j++)
+			for(int k=0; k<64; k++){
+				bin_dense_in2.write(dmem[i][j][k]);
+			}
+
+		for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
+		  for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
+		  {
+			//bin_dense_in1.write(wt_mem[wt_mem_i][wt_mem_j]);
+			bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
+			bin_dense_cnt++;
+
+		  }
+
+		for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
+		{
+			//bin_dense_in1.write(kh_mem[kh_i]);
+			bin_dense_in1.write(bin_dense_wt[bin_dense_cnt]);
+			bin_dense_cnt++;
+		}
+
+		if (bin_dense_cnt == 175602) bin_dense_cnt = 0;
+		//printf("bin_dense\n");
+		  bin_dense_wrapper(
+			bin_dense_in1,
+			bin_dense_in2,
+			bin_dense_out1
+		);
+
+		for(int i=0; i<2; i++)
+		  for(int j=0; j<2; j++)
+			for(int k=0; k<64; k++){
+				dmem[i][j][k] = bin_dense_out1.read();
+			}
+
+	} // layer_type
+
+	if(layer_cnt ==53) {
+      dmem_o[0] = dmem[0][0][0];
+	}
+	layer_cnt++;
+	if(layer_cnt == 54) layer_cnt = 0;
+
 }

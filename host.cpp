@@ -6,7 +6,6 @@
 #include "data.h"
 #include "label.h"
 
-
 int main(int argc, char** argv) {
   unsigned N_IMG;
   if (argc < 2) {
@@ -28,7 +27,7 @@ int main(int argc, char** argv) {
 		printf("Processing Numer %d image\n", i);
 		for(j=0; j<54; j++)
 		{
-			//printf("Processing layer %d\n", i);
+			printf("Processing layer %d\n", j);
 			top(
 				&wt_i[WT_WORDS*j],
 				&kh_i[KH_WORDS*j],
