@@ -954,25 +954,12 @@ void top(
 			fp_conv_out1
 	    );
 
-	    //for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-	  	for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-	      for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-	        dmem[0][dmem_j][dmem_k] = fp_conv_out1.read();
+	  	layer_cnt++;
 	}
 
 
 
 	while(layer_cnt >=1 && layer_cnt <= 16) {
-
-		if(layer_cnt == 1)
-		{
-			//for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-			  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-				for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-					bin_conv_in2.write(dmem[0][dmem_j][dmem_k]);
-		}
-
-
 
 
 		for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
@@ -993,7 +980,7 @@ void top(
 		if(bin_conv_cnt == 75936) bin_conv_cnt = 0;
 		bin_conv_wrapper(
 			bin_conv_in1,
-			bin_conv_in2,
+			fp_conv_out1,
 			bin_conv_out1
 		);
 
