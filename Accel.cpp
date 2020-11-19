@@ -688,10 +688,10 @@ void fp_conv(
       //				  (unsigned int)(bank_off*OUTWORDS + i));
     }
   } // n
-  for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-	for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-      for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-        Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
+  //for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+    for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+      Output_1.write(dmem[0][dmem_j][dmem_k]);
 
 }
 
@@ -946,15 +946,15 @@ void top(
 			fp_conv_out1
 	    );
 
-	    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-	  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-	        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-	          dmem[dmem_i][dmem_j][dmem_k] = fp_conv_out1.read();
+	    //for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+	  	for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+	      for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+	        dmem[0][dmem_j][dmem_k] = fp_conv_out1.read();
 	}
 
 
 
-	if(layer_cnt >=1 && layer_cnt <= 16) {
+	while(layer_cnt >=1 && layer_cnt <= 16) {
 
 		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
 		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
@@ -990,6 +990,8 @@ void top(
 		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
 			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
 			  dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
+
+		layer_cnt++;
 	}
 
 	if(layer_cnt >=17) {

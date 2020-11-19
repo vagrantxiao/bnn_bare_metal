@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("Processing Numer %d image\n", i);
-		for(j=0; j<54; j++)
+		for(j=0; j<38; j++)
 		{
 			printf("Processing layer %d\n", j);
 			top(
