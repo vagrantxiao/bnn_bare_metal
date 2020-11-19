@@ -468,7 +468,7 @@ void bin_conv_wrapper(
 	hls::stream< Word > & Output_1
 ) {
 	static unsigned int bin_conv_cnt = 0;
-	Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
+	static Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
     Word wt_mem[CONVOLVERS][C_WT_WORDS];
 	Word kh_mem[KH_WORDS];
 
@@ -500,10 +500,13 @@ void bin_conv_wrapper(
     }
 
 
-    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-          dmem[dmem_i][dmem_j][dmem_k] = Input_2.read();
+    if(bin_conv_cnt == 0)
+    {
+		//for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+			  dmem[0][dmem_j][dmem_k] = Input_2.read();
+    }
 
 
     LOOP_IMG_BATCH:
@@ -528,13 +531,18 @@ void bin_conv_wrapper(
       kh_index++;
       o_index++;
     }
+
+
+    if(bin_conv_cnt == 15)
+    {
+		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+			  Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
+    }
+
     bin_conv_cnt++;
     if(bin_conv_cnt==16) bin_conv_cnt = 0;
-
-    for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-  	  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-        for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-          Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
 
 }
 // -----------------------------------------------------------------------
@@ -956,10 +964,13 @@ void top(
 
 	while(layer_cnt >=1 && layer_cnt <= 16) {
 
-		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-				bin_conv_in2.write(dmem[dmem_i][dmem_j][dmem_k]);
+		if(layer_cnt == 1)
+		{
+			//for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+			  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+				for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+					bin_conv_in2.write(dmem[0][dmem_j][dmem_k]);
+		}
 
 
 
@@ -986,10 +997,13 @@ void top(
 			bin_conv_out1
 		);
 
-		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-			  dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
+		if(layer_cnt == 16)
+		{
+			for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+			  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
+				for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
+				  dmem[dmem_i][dmem_j][dmem_k] = bin_conv_out1.read();
+		}
 
 		layer_cnt++;
 	}
