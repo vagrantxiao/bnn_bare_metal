@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 			top(
 				&wt_i[WT_WORDS*j],
 				&kh_i[KH_WORDS*j],
-				&data_in[DMEM_WORDS*i],
+				&data_in[1024*i],
 				dmem_o,
 				n_inputs[j],
 				n_outputs[j],
