@@ -1,4 +1,4 @@
-Word fp_conv_wt[] = {0xf572028cf8dc018a,
+const Word fp_conv_wt[] = {0xf572028cf8dc018a,
 0xdbd6011301e4ef45,
 0xfe4e0270e981fe48,
 0x005b10a9fe74ffac,

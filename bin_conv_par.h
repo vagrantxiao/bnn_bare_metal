@@ -1,4 +1,4 @@
-Word bin_conv_wt[] = {0x2c4c7170009f1857,
+const Word bin_conv_wt[] = {0x2c4c7170009f1857,
 0x28783e0f8387e5c0,
 0x7bcabe06f2fd8036,
 0x4e21fe03fe041e42,

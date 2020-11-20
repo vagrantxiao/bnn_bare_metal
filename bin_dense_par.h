@@ -1,4 +1,4 @@
-Word bin_dense_wt[] = {0xb2052c56fdc0f40c,
+const Word bin_dense_wt[] = {0xb2052c56fdc0f40c,
 0x1439ee4167a8b746,
 0x016f3ee64d49fe44,
 0x08b4d100bb090d52,

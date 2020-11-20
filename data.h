@@ -1,4 +1,4 @@
-Word data_in[] = {0x0d898af83840f4f5,
+const Word data_in[] = {0x0d898af83840f4f5,
 0x0d7979f7b7c0fcfd,
 0x0d999afa3a412d2d,
 0x0da9aafb3b413535,
