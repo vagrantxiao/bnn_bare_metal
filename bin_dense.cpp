@@ -160,7 +160,7 @@ void bin_dense_wrapper(
 	Word kh_mem[KH_WORDS];
 	static char bin_dense_cnt = 0;
 
-	printf("bin_dense_cnt=%d\n", bin_dense_cnt);
+	//printf("bin_dense_cnt=%d\n", bin_dense_cnt);
 
     for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
@@ -203,7 +203,7 @@ for(int k=0; k<64; k++){
 		  for(int j=0; j<2; j++)
 			for(int k=0; k<64; k++){
 #pragma HLS PIPELINE
-				Output_1.write(256);
+				Output_1.write(256*64);
 				DMA_Word out_tmp;
 				out_tmp(127,64) = 0;
 				out_tmp(63,0) = dmem[0][j][k];

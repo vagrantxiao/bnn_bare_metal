@@ -125,6 +125,7 @@ void process_word(
 // * Make sure this function gets inlined by VHLS, or cosim may fail!
 // -----------------------------------------------------------------------
 void bin_conv(
+	hls::stream< Word > & Input_1,
     Word wt_mem[CONVOLVERS][C_WT_WORDS],
     NormComp nc,
     Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
@@ -142,7 +143,7 @@ void bin_conv(
   const unsigned images_per_phase = PIX_PER_PHASE >> (2*log_width);
   const unsigned WORDS_PER_PHASE = PIX_PER_PHASE / WORD_SIZE;
 
-
+  Word wt_word_buffer_list[2];
 
 
 
@@ -154,7 +155,8 @@ void bin_conv(
   Bit     conv_params[CONVOLVERS][K][K];
 #pragma HLS ARRAY_PARTITION variable=conv_params complete dim=0
   ConvSum fixed_buffer[WORDS_PER_PHASE][WORD_SIZE];
-#pragma HLS ARRAY_PARTITION variable=fixed_buffer complete dim=2
+#pragma HLS ARRAY_RESHAPE     variable=fixed_buffer cyclic factor=32 dim=2
+//#pragma HLS ARRAY_PARTITION variable=fixed_buffer complete dim=2
   ConvSum fixed_temp[WORD_SIZE];
 #pragma HLS ARRAY_PARTITION variable=fixed_temp complete dim=0
   // per-convolver buffers
@@ -196,6 +198,13 @@ void bin_conv(
     }
   }
 
+
+  //wt_word_buffer_list[0] = wt_mem[0][wt_addr];
+  //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
+  wt_word_buffer_list[0] = Input_1.read();
+  wt_word_buffer_list[1] = Input_1.read();
+  //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
+  //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
   // ---------------------------------------------------------------------
   // Compute in phases
   // Each phase processes CONVOLVERS * WORDS_PER_PHASE input words
@@ -203,7 +212,6 @@ void bin_conv(
   LOOP_PHASES:
   for (ap_uint<10> p = 0; p < n_phases; p += images_per_phase) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=512
-
     // wrd = which word in the current image
     // wrd_phase = which wrd in the current phase
     ap_uint<8> wrd = 0;
@@ -234,11 +242,17 @@ void bin_conv(
           else
             wt_word_buffer[m] = wt_word_buffer[m] >> WT_SIZE;
           */
-          wt_word_buffer[m] = wt_mem[m][wt_addr] >> ap_uint<6>(WT_SIZE*wt_offset);
-          //printf("m=%d, wt_addr=%d\n", (unsigned int)m, (unsigned int)wt_addr);
+          //wt_word_buffer[m] = wt_mem[m][wt_addr] >> ap_uint<6>(WT_SIZE*wt_offset);
+          wt_word_buffer[m] = wt_word_buffer_list[m] >> ap_uint<6>(WT_SIZE*wt_offset);
         }
         if (wt_offset == CONV_W_PER_WORD-1) {
           ++wt_addr;
+          //wt_word_buffer_list[0] = wt_mem[0][wt_addr];
+          //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
+          wt_word_buffer_list[0] = Input_1.read();
+          wt_word_buffer_list[1] = Input_1.read();
+          //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
+          //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
           wt_offset = 0;
         } else {
           ++wt_offset;
@@ -408,6 +422,7 @@ void bin_conv_wrapper(
 
 	hls::stream< Word > & Input_1,
 	hls::stream< Word > & Input_2,
+	hls::stream< Word > & Input_3,
 	hls::stream< Word > & Output_1
 ) {
 #pragma HLS INTERFACE ap_hs port=Input_1
@@ -434,7 +449,7 @@ void bin_conv_wrapper(
     Address n_outputs = n_outputs_list[bin_conv_cnt];
     Address kh_index = 0;
 
-
+    //printf("bin_conv_cnt=%d\n", bin_conv_cnt);
 
     for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
       for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
@@ -472,6 +487,7 @@ void bin_conv_wrapper(
       load_kh(nc, kh_mem, kh_index);
 
       bin_conv(
+    	  Input_3,
           wt_mem,
           nc,
           dmem,
