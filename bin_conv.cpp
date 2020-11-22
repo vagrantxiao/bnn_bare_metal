@@ -203,8 +203,8 @@ void bin_conv(
   //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
   wt_word_buffer_list[0] = Input_1.read();
   wt_word_buffer_list[1] = Input_1.read();
-  //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
-  //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
+  //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
+  //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
   // ---------------------------------------------------------------------
   // Compute in phases
   // Each phase processes CONVOLVERS * WORDS_PER_PHASE input words
@@ -251,8 +251,8 @@ void bin_conv(
           //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
           wt_word_buffer_list[0] = Input_1.read();
           wt_word_buffer_list[1] = Input_1.read();
-          //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
-          //printf("0x%08x%08x\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
+          //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
+          //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
           wt_offset = 0;
         } else {
           ++wt_offset;
@@ -422,7 +422,6 @@ void bin_conv_wrapper(
 
 	hls::stream< Word > & Input_1,
 	hls::stream< Word > & Input_2,
-	hls::stream< Word > & Input_3,
 	hls::stream< Word > & Output_1
 ) {
 #pragma HLS INTERFACE ap_hs port=Input_1
@@ -451,19 +450,12 @@ void bin_conv_wrapper(
 
     //printf("bin_conv_cnt=%d\n", bin_conv_cnt);
 
-    for(unsigned int wt_mem_i=0; wt_mem_i<CONVOLVERS; wt_mem_i++)
-      for(unsigned int wt_mem_j=0; wt_mem_j<C_WT_WORDS; wt_mem_j++)
-      {
-#pragma HLS PIPELINE
-    	wt_mem[wt_mem_i][wt_mem_j] = Input_1.read();
-    	//printf("%08x%08x,\n", (unsigned int) wt_mem[wt_mem_i][wt_mem_j](63,32), (unsigned int) wt_mem[wt_mem_i][wt_mem_j](31,0));
-      }
 
     for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
     {
 #pragma HLS PIPELINE
     	kh_mem[kh_i] = Input_1.read();
-    	//printf("%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
+    	//printf("0x%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
     }
 
 
@@ -487,7 +479,7 @@ void bin_conv_wrapper(
       load_kh(nc, kh_mem, kh_index);
 
       bin_conv(
-    	  Input_3,
+    	  Input_1,
           wt_mem,
           nc,
           dmem,
