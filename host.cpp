@@ -45,13 +45,11 @@ int main(int argc, char** argv) {
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("We are processing %d images\n", i);
-		fp_conv_gen(fp_conv_gen_out1);
 		bin_conv_gen(bin_conv_gen_out1);
 		//bin_conv_gen1(bin_conv_gen1_out1);
 		bin_dense_gen(bin_dense_gen_out1);
 
-		fp_conv(fp_conv_gen_out1,
-				data_gen_out1,
+		fp_conv(data_gen_out1,
 				fp_conv_out1
 			    );
 

@@ -3,13 +3,13 @@
 
 
 void fp_conv(
-	hls::stream< Word > & Input_1,//Word wt_mem[CONVOLVERS][C_WT_WORDS],
-	hls::stream< DMA_Word > & Input_2,
+	hls::stream< DMA_Word > & Input_1,
 	hls::stream< Word > & Output_1
 ) {
 #pragma HLS INTERFACE ap_hs port=Output_1
 #pragma HLS INTERFACE ap_hs port=Input_1
 #pragma HLS INTERFACE ap_hs port=Input_2
+#include "fp_conv_par.h"
 
   const unsigned M = 3;
   const unsigned S = 32;
@@ -37,16 +37,18 @@ void fp_conv(
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=2
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=1
 
+  int wt_cnt=KH_WORDS;
+
   fp_data_in: for(int in_data_cnt=0; in_data_cnt<1024; in_data_cnt++) {
 #pragma HLS PIPELINE II=1
 	DMA_Word in_dmp;
-	in_dmp = Input_2.read();
+	in_dmp = Input_1.read();
     dmem[1][0][in_data_cnt] = in_dmp(63,0);
   }
 
   for(int kh_i=0; kh_i<KH_WORDS; kh_i++)
   {
-  	kh_mem[kh_i] = Input_1.read();
+  	kh_mem[kh_i] = fp_conv_wt[kh_i];
   	//printf("%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
   }
 
@@ -72,7 +74,8 @@ void fp_conv(
     // The weights for the 1st conv layer are just laid out
     // linearly across wt_mem, 3 weights per 64-bit word
 
-    Word wt_word =  Input_1.read();//wt_mem[n % CONVOLVERS][n / CONVOLVERS];
+    Word wt_word =  fp_conv_wt[wt_cnt];//wt_mem[n % CONVOLVERS][n / CONVOLVERS];
+    wt_cnt++;
     //printf("%08x%08x,\n", (unsigned int) wt_word(63,32), (unsigned int) wt_word(31,0));
     LOOP_LOAD_WTS:
     for (ap_uint<2> m = 0; m < M; ++m) {
