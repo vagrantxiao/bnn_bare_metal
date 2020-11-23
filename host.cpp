@@ -8,6 +8,10 @@
 #include "fp_conv_gen.h"
 #include "bin_conv_gen.h"
 #include "bin_dense_gen.h"
+#include "bin_conv_wt_gen_0.h"
+#include "bin_conv_wt_gen_1.h"
+#include "bin_conv_wt_gen_2.h"
+#include "bin_conv_wt_gen_3.h"
 
 
 int main(int argc, char** argv) {
@@ -33,9 +37,10 @@ int main(int argc, char** argv) {
 	hls::stream< Word > bin_dense_in1("bin_dense_in1");
 	hls::stream< Word > bin_dense_in2("bin_dense_in2");
 	hls::stream< DMA_Word > bin_dense_out1("bin_dense_out1");
-	hls::stream< Word > fp_conv_gen_out1("fp_conv_gen_out1");
+	hls::stream< Word > bin_conv_gen_out0("bin_conv_gen_out0");
 	hls::stream< Word > bin_conv_gen_out1("bin_conv_gen_out1");
-	//hls::stream< Word > bin_conv_gen1_out1("bin_conv_gen1_out1");
+	hls::stream< Word > bin_conv_gen_out2("bin_conv_gen_out2");
+	hls::stream< Word > bin_conv_gen_out3("bin_conv_gen_out3");
 	hls::stream< Word > bin_dense_gen_out1("bin_dense_gen_out1");
 
 	Word dmem_o[2*2*64];
@@ -45,7 +50,10 @@ int main(int argc, char** argv) {
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("We are processing %d images\n", i);
-		bin_conv_gen(bin_conv_gen_out1);
+		bin_conv_wt_gen_0(bin_conv_gen_out0);
+		bin_conv_wt_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
+		bin_conv_wt_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
+		bin_conv_wt_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
 		//bin_conv_gen1(bin_conv_gen1_out1);
 		bin_dense_gen(bin_dense_gen_out1);
 
@@ -54,7 +62,7 @@ int main(int argc, char** argv) {
 			    );
 
 		for(j=0; j<16; j++){
-			bin_conv_wrapper(bin_conv_gen_out1,
+			bin_conv_wrapper(bin_conv_gen_out3,
 					 fp_conv_out1,
 					 bin_conv_out1);
 		}
