@@ -12,7 +12,17 @@
 #include "bin_conv_wt_gen_1.h"
 #include "bin_conv_wt_gen_2.h"
 #include "bin_conv_wt_gen_3.h"
-
+#include "bin_dense_wt_gen_0.h"
+#include "bin_dense_wt_gen_1.h"
+#include "bin_dense_wt_gen_2.h"
+#include "bin_dense_wt_gen_3.h"
+#include "bin_dense_wt_gen_4.h"
+#include "bin_dense_wt_gen_5.h"
+#include "bin_dense_wt_gen_6.h"
+#include "bin_dense_wt_gen_7.h"
+#include "bin_dense_wt_gen_8.h"
+#include "bin_dense_wt_gen_9.h"
+#include "bin_dense_wt_gen_10.h"
 
 int main(int argc, char** argv) {
   hls::stream< DMA_Word > data_gen_out1("data_gen_out1");
@@ -41,7 +51,17 @@ int main(int argc, char** argv) {
 	hls::stream< Word > bin_conv_gen_out1("bin_conv_gen_out1");
 	hls::stream< Word > bin_conv_gen_out2("bin_conv_gen_out2");
 	hls::stream< Word > bin_conv_gen_out3("bin_conv_gen_out3");
+	hls::stream< Word > bin_dense_gen_out0("bin_dense_gen_out0");
 	hls::stream< Word > bin_dense_gen_out1("bin_dense_gen_out1");
+	hls::stream< Word > bin_dense_gen_out2("bin_dense_gen_out2");
+	hls::stream< Word > bin_dense_gen_out3("bin_dense_gen_out3");
+	hls::stream< Word > bin_dense_gen_out4("bin_dense_gen_out4");
+	hls::stream< Word > bin_dense_gen_out5("bin_dense_gen_out5");
+	hls::stream< Word > bin_dense_gen_out6("bin_dense_gen_out6");
+	hls::stream< Word > bin_dense_gen_out7("bin_dense_gen_out7");
+	hls::stream< Word > bin_dense_gen_out8("bin_dense_gen_out8");
+	hls::stream< Word > bin_dense_gen_out9("bin_dense_gen_out9");
+	hls::stream< Word > bin_dense_gen_out10("bin_dense_gen_out10");
 
 	Word dmem_o[2*2*64];
 
@@ -54,8 +74,19 @@ int main(int argc, char** argv) {
 		bin_conv_wt_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
 		bin_conv_wt_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
 		bin_conv_wt_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
-		//bin_conv_gen1(bin_conv_gen1_out1);
-		bin_dense_gen(bin_dense_gen_out1);
+
+		bin_dense_wt_gen_0(bin_dense_gen_out0);
+		bin_dense_wt_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);
+		bin_dense_wt_gen_2(bin_dense_gen_out1, bin_dense_gen_out2);
+		bin_dense_wt_gen_3(bin_dense_gen_out2, bin_dense_gen_out3);
+		bin_dense_wt_gen_4(bin_dense_gen_out3, bin_dense_gen_out4);
+		bin_dense_wt_gen_5(bin_dense_gen_out4, bin_dense_gen_out5);
+		bin_dense_wt_gen_6(bin_dense_gen_out5, bin_dense_gen_out6);
+		bin_dense_wt_gen_7(bin_dense_gen_out6, bin_dense_gen_out7);
+		bin_dense_wt_gen_8(bin_dense_gen_out7, bin_dense_gen_out8);
+		bin_dense_wt_gen_9(bin_dense_gen_out8, bin_dense_gen_out9);
+		bin_dense_wt_gen_10(bin_dense_gen_out9, bin_dense_gen_out10);
+
 
 		fp_conv(data_gen_out1,
 				fp_conv_out1
@@ -68,7 +99,7 @@ int main(int argc, char** argv) {
 		}
 
 		for(j=0; j<37; j++){
-			bin_dense_wrapper(bin_dense_gen_out1,
+			bin_dense_wrapper(bin_dense_gen_out10,
 					  bin_conv_out1,
 					  bin_dense_out1);
 		}
