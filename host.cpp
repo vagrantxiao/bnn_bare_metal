@@ -5,9 +5,6 @@
 #include "fp_conv.h"
 #include "bin_conv.h"
 #include "bin_dense.h"
-#include "fp_conv_gen.h"
-#include "bin_conv_gen.h"
-#include "bin_dense_gen.h"
 #include "bin_conv_wt_gen_0.h"
 #include "bin_conv_wt_gen_1.h"
 #include "bin_conv_wt_gen_2.h"
@@ -23,9 +20,19 @@
 #include "bin_dense_wt_gen_8.h"
 #include "bin_dense_wt_gen_9.h"
 #include "bin_dense_wt_gen_10.h"
+#include "data_in_gen_0.h"
+#include "data_in_gen_1.h"
+#include "data_in_gen_2.h"
+#include "data_in_gen_3.h"
+#include "data_in_gen_4.h"
+
 
 int main(int argc, char** argv) {
-  hls::stream< DMA_Word > data_gen_out1("data_gen_out1");
+  hls::stream< Word > data_gen_out0("data_gen_out0");
+  hls::stream< Word > data_gen_out1("data_gen_out1");
+  hls::stream< Word > data_gen_out2("data_gen_out2");
+  hls::stream< Word > data_gen_out3("data_gen_out3");
+  hls::stream< DMA_Word > data_gen_out4("data_gen_out4");
   unsigned N_IMG;
   if (argc < 2) {
     printf ("We will use default N_IMG = 1\n");
@@ -65,7 +72,16 @@ int main(int argc, char** argv) {
 
 	Word dmem_o[2*2*64];
 
-	data_gen_num(N_IMG, data_gen_out1);
+	data_in_gen_0(data_gen_out0);
+	data_in_gen_1(data_gen_out0, data_gen_out1);
+	data_in_gen_2(data_gen_out1, data_gen_out2);
+	data_in_gen_3(data_gen_out2, data_gen_out3);
+	data_in_gen_4(N_IMG, data_gen_out3, data_gen_out4);
+
+
+
+	//data_gen_num(N_IMG, data_gen_out1);
+
 
 	for(i=0; i<N_IMG; i++)
 	{
@@ -88,7 +104,7 @@ int main(int argc, char** argv) {
 		bin_dense_wt_gen_10(bin_dense_gen_out9, bin_dense_gen_out10);
 
 
-		fp_conv(data_gen_out1,
+		fp_conv(data_gen_out4,
 				fp_conv_out1
 			    );
 
