@@ -5,21 +5,21 @@
 #include "fp_conv.h"
 #include "bin_conv.h"
 #include "bin_dense.h"
-#include "bin_conv_wt_gen_0.h"
-#include "bin_conv_wt_gen_1.h"
-#include "bin_conv_wt_gen_2.h"
-#include "bin_conv_wt_gen_3.h"
-#include "bin_dense_wt_gen_0.h"
-#include "bin_dense_wt_gen_1.h"
-#include "bin_dense_wt_gen_2.h"
-#include "bin_dense_wt_gen_3.h"
-#include "bin_dense_wt_gen_4.h"
-#include "bin_dense_wt_gen_5.h"
-#include "bin_dense_wt_gen_6.h"
-#include "bin_dense_wt_gen_7.h"
-#include "bin_dense_wt_gen_8.h"
-#include "bin_dense_wt_gen_9.h"
-#include "bin_dense_wt_gen_10.h"
+#include "bc_gen_0.h"
+#include "bc_gen_1.h"
+#include "bc_gen_2.h"
+#include "bc_gen_3.h"
+#include "bd_gen_0.h"
+#include "bd_gen_1.h"
+#include "bd_gen_2.h"
+#include "bd_gen_3.h"
+#include "bd_gen_4.h"
+#include "bd_gen_5.h"
+#include "bd_gen_6.h"
+#include "bd_gen_7.h"
+#include "bd_gen_8.h"
+#include "bd_gen_9.h"
+#include "bd_gen_10.h"
 #include "data_in_gen_0.h"
 #include "data_in_gen_1.h"
 #include "data_in_gen_2.h"
@@ -86,22 +86,22 @@ int main(int argc, char** argv) {
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("We are processing %d images\n", i);
-		bin_conv_wt_gen_0(bin_conv_gen_out0);
-		bin_conv_wt_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
-		bin_conv_wt_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
-		bin_conv_wt_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
+		bc_gen_0(bin_conv_gen_out0);
+		bc_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
+		bc_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
+		bc_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
 
-		bin_dense_wt_gen_0(bin_dense_gen_out0);
-		bin_dense_wt_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);
-		bin_dense_wt_gen_2(bin_dense_gen_out1, bin_dense_gen_out2);
-		bin_dense_wt_gen_3(bin_dense_gen_out2, bin_dense_gen_out3);
-		bin_dense_wt_gen_4(bin_dense_gen_out3, bin_dense_gen_out4);
-		bin_dense_wt_gen_5(bin_dense_gen_out4, bin_dense_gen_out5);
-		bin_dense_wt_gen_6(bin_dense_gen_out5, bin_dense_gen_out6);
-		bin_dense_wt_gen_7(bin_dense_gen_out6, bin_dense_gen_out7);
-		bin_dense_wt_gen_8(bin_dense_gen_out7, bin_dense_gen_out8);
-		bin_dense_wt_gen_9(bin_dense_gen_out8, bin_dense_gen_out9);
-		bin_dense_wt_gen_10(bin_dense_gen_out9, bin_dense_gen_out10);
+		bd_gen_0(bin_dense_gen_out0);
+		bd_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);
+		bd_gen_2(bin_dense_gen_out1, bin_dense_gen_out2);
+		bd_gen_3(bin_dense_gen_out2, bin_dense_gen_out3);
+		bd_gen_4(bin_dense_gen_out3, bin_dense_gen_out4);
+		bd_gen_5(bin_dense_gen_out4, bin_dense_gen_out5);
+		bd_gen_6(bin_dense_gen_out5, bin_dense_gen_out6);
+		bd_gen_7(bin_dense_gen_out6, bin_dense_gen_out7);
+		bd_gen_8(bin_dense_gen_out7, bin_dense_gen_out8);
+		bd_gen_9(bin_dense_gen_out8, bin_dense_gen_out9);
+		bd_gen_10(bin_dense_gen_out9, bin_dense_gen_out10);
 
 
 		fp_conv(data_gen_out4,

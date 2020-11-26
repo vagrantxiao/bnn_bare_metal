@@ -1,4 +1,4 @@
-const Word bin_dense_wt_1_0[] = {0x2a717f260efce363,
+const Word bd_1_0[] = {0x2a717f260efce363,
 0xf6d7ae08cb7d5400,
 0xa3f8ef877e96cdfe,
 0x2644100080aa48d8,

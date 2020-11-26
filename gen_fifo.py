@@ -115,8 +115,8 @@ class gen_fifo:
 
 if __name__ == '__main__':
   # bram_size_list = [20480, 20480, 20480, 15452]
-  # bram_size_list = [10240, 10240, 14336, 14336, 20480, 20480, 20480, 14336, 14336, 20480, 15858]
-  bram_size_list = [20480, 20480, 20480, 20480, 20480]
+  bram_size_list = [8192, 8192,  14336, 14336, 20480, 20480, 20480, 14336, 14336, 20480, 19954]
+  # bram_size_list = [20480, 20480, 20480, 20480, 20480]
   fifo_inst = gen_fifo('')
-  fifo_inst.run('./src/data.h', bram_size_list, './src')
+  fifo_inst.run('./src/bin_dense_par.h', bram_size_list, './src')
 
