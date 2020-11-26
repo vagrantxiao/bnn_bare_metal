@@ -154,8 +154,12 @@ void bin_conv(
 #pragma HLS ARRAY_PARTITION variable=line_buffer complete dim=0
   Bit     conv_params[CONVOLVERS][K][K];
 #pragma HLS ARRAY_PARTITION variable=conv_params complete dim=0
+
+  //                   32               64
   ConvSum fixed_buffer[WORDS_PER_PHASE][WORD_SIZE];
 #pragma HLS ARRAY_RESHAPE     variable=fixed_buffer cyclic factor=32 dim=2
+
+
 //#pragma HLS ARRAY_PARTITION variable=fixed_buffer complete dim=2
   ConvSum fixed_temp[WORD_SIZE];
 #pragma HLS ARRAY_PARTITION variable=fixed_temp complete dim=0
@@ -182,6 +186,7 @@ void bin_conv(
   const ap_uint<4> w_div_8 = (1 << log_width) >> 3;
   ap_uint<4> mask = ~ap_uint<4>(0);   // set mask to all 1s
   mask = mask >> (4-log_slice);
+  //                               8
   for (ap_uint<4> bank = 0; bank < CONV_BANKS; ++bank) {
     #pragma HLS unroll
     const ap_uint<4> x = bank & mask;
@@ -191,6 +196,7 @@ void bin_conv(
 
   // ---------------------------------------------------------------------
   // Reset conv buffer
+                          //32
   for (IdxType i = 0; i < WORDS_PER_PHASE; ++i) {
     for (IdxType j = 0; j < WORD_SIZE; ++j) {
       #pragma HLS UNROLL
