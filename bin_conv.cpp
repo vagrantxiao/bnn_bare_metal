@@ -158,9 +158,9 @@ void bin_conv(
   //                   32               64
   ConvSum fixed_buffer[WORDS_PER_PHASE][WORD_SIZE];
 #pragma HLS ARRAY_RESHAPE     variable=fixed_buffer cyclic factor=32 dim=2
-
-
 //#pragma HLS ARRAY_PARTITION variable=fixed_buffer complete dim=2
+
+
   ConvSum fixed_temp[WORD_SIZE];
 #pragma HLS ARRAY_PARTITION variable=fixed_temp complete dim=0
   // per-convolver buffers
@@ -274,6 +274,7 @@ void bin_conv(
         // Each word contains CONV_W_PER_WORD weight filters packed into the first
         // 63 bits, the last bit is unused. Wts are stored in output-major order.
         // -------------------------------------------------------------------
+        //2x3x3=18
         LOOP_LOAD_WTS:
         for (IdxType m = 0; m < CONVOLVERS; ++m) {
           for (ap_uint<2> kr = 0; kr < K; ++kr) {
