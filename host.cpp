@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 	hls::stream< Word > bin_conv_gen_out0("bin_conv_gen_out0");
 	hls::stream< Word > bin_conv_gen_out1("bin_conv_gen_out1");
 	hls::stream< Word > bin_conv_gen_out2("bin_conv_gen_out2");
-	hls::stream< DMA_Word > bin_conv_gen_out3("bin_conv_gen_out3");
+	hls::stream< Word > bin_conv_gen_out3("bin_conv_gen_out3");
 	hls::stream< Word > bin_dense_gen_out0("bin_dense_gen_out0");
 	hls::stream< Word > bin_dense_gen_out1("bin_dense_gen_out1");
 	hls::stream< Word > bin_dense_gen_out2("bin_dense_gen_out2");
