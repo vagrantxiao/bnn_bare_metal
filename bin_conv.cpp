@@ -125,8 +125,7 @@ void process_word(
 // * Make sure this function gets inlined by VHLS, or cosim may fail!
 // -----------------------------------------------------------------------
 void bin_conv(
-	hls::stream< Word > & Input_1,
-    Word wt_mem[CONVOLVERS][C_WT_WORDS],
+	hls::stream< DMA_Word > & Input_1,
     NormComp nc,
     Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
     ap_uint<1> d_i_idx,
@@ -144,7 +143,7 @@ void bin_conv(
   const unsigned WORDS_PER_PHASE = PIX_PER_PHASE / WORD_SIZE;
 
   Word wt_word_buffer_list[2];
-
+  DMA_Word input_tmp;
 
 
   // ---------------------------------------------------------------------
@@ -158,9 +157,9 @@ void bin_conv(
   //                   32               64
   ConvSum fixed_buffer[WORDS_PER_PHASE][WORD_SIZE];
 #pragma HLS ARRAY_RESHAPE     variable=fixed_buffer cyclic factor=32 dim=2
-
-
 //#pragma HLS ARRAY_PARTITION variable=fixed_buffer complete dim=2
+
+
   ConvSum fixed_temp[WORD_SIZE];
 #pragma HLS ARRAY_PARTITION variable=fixed_temp complete dim=0
   // per-convolver buffers
@@ -175,7 +174,7 @@ void bin_conv(
 #pragma HLS ARRAY_PARTITION variable=lb complete dim=0
   bool rb[CONV_BANKS];
 #pragma HLS ARRAY_PARTITION variable=rb complete dim=0
-  Word wt_word_buffer[CONVOLVERS];
+
   static Address wt_addr = 0;           // address of weight word
   static ap_uint<3> wt_offset = 0;      // offset 0..6 of param
   if (new_batch != 0) { wt_addr = 0; wt_offset = 0; }
@@ -187,7 +186,7 @@ void bin_conv(
   ap_uint<4> mask = ~ap_uint<4>(0);   // set mask to all 1s
   mask = mask >> (4-log_slice);
   //                               8
-  for (ap_uint<4> bank = 0; bank < CONV_BANKS; ++bank) {
+  PAD_LOOP: for (ap_uint<4> bank = 0; bank < CONV_BANKS; ++bank) {
     #pragma HLS unroll
     const ap_uint<4> x = bank & mask;
     lb[bank] = (x == 0);          // (bank % w_div_8) == 0
@@ -197,8 +196,8 @@ void bin_conv(
   // ---------------------------------------------------------------------
   // Reset conv buffer
                           //32
-  for (IdxType i = 0; i < WORDS_PER_PHASE; ++i) {
-    for (IdxType j = 0; j < WORD_SIZE; ++j) {
+  CONV_BUF_LOOP1: for (IdxType i = 0; i < WORDS_PER_PHASE; ++i) {
+	  CONV_BUF_LOOP2: for (IdxType j = 0; j < WORD_SIZE; ++j) {
       #pragma HLS UNROLL
       fixed_buffer[i][j] = 0;
     }
@@ -207,14 +206,16 @@ void bin_conv(
 
   //wt_word_buffer_list[0] = wt_mem[0][wt_addr];
   //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
-  wt_word_buffer_list[0] = Input_1.read();
-  wt_word_buffer_list[1] = Input_1.read();
+  input_tmp = Input_1.read();
+  wt_word_buffer_list[0] = input_tmp(127, 64);
+  wt_word_buffer_list[1] = input_tmp(63,  0);
   //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
   //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
   // ---------------------------------------------------------------------
   // Compute in phases
   // Each phase processes CONVOLVERS * WORDS_PER_PHASE input words
   // ---------------------------------------------------------------------
+  //printf("LOOP_PHASES: n_phases=%d, images_per_phase=%d\n", (unsigned int)n_phases, (unsigned int) images_per_phase);
   LOOP_PHASES:
   for (ap_uint<10> p = 0; p < n_phases; p += images_per_phase) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=512
@@ -227,38 +228,43 @@ void bin_conv(
     // We load WORDS_PER_PHASE words per phase, however we also need 1 extra "empty"
     // iteration per image in the phase to do the loop epilogue, so the loop bound
     // is WORDS_PER_PHASE + images_per_phase
-
-
+    //printf("    LOOP_WORDS_IN_PHASE: WORDS_PER_PHASE+images_per_phase=%d\n", (unsigned int)(WORDS_PER_PHASE+images_per_phase));
     LOOP_WORDS_IN_PHASE:
     for (ap_uint<8> count = 0; count < WORDS_PER_PHASE+images_per_phase; ++count) {
-      for (IdxType m = 0; m < CONVOLVERS; ++m) {
 #pragma HLS DEPENDENCE variable=fixed_buffer inter false
 #pragma HLS LOOP_TRIPCOUNT min=17 max=32
 #pragma HLS PIPELINE
       // First word of an image
       if (wrd == 0) {
+        Word wt_word_buffer[CONVOLVERS];
+
         // -------------------------------------------------------------------
         // Load param word
         // Each word contains CONV_W_PER_WORD weight filters, after we use
         // them all we should load the next word
         // -------------------------------------------------------------------
         LOOP_WT_WORDS:
-        //for (IdxType m = 0; m < CONVOLVERS; ++m) {
+        for (IdxType m = 0; m < CONVOLVERS; ++m) {
+          /*if (wt_offset == 0)
+            wt_word_buffer[m] = wt_mem[m][wt_addr];
+          else
+            wt_word_buffer[m] = wt_word_buffer[m] >> WT_SIZE;
+          */
+          //wt_word_buffer[m] = wt_mem[m][wt_addr] >> ap_uint<6>(WT_SIZE*wt_offset);
           wt_word_buffer[m] = wt_word_buffer_list[m] >> ap_uint<6>(WT_SIZE*wt_offset);
-        //}
-        if(m==1){
-          if (wt_offset == CONV_W_PER_WORD-1) {
-            ++wt_addr;
-            //wt_word_buffer_list[0] = wt_mem[0][wt_addr];
-            //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
-            wt_word_buffer_list[0] = Input_1.read();
-            wt_word_buffer_list[1] = Input_1.read();
-            //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
-            //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
-            wt_offset = 0;
-          } else {
-            ++wt_offset;
-          }
+        }
+        if (wt_offset == CONV_W_PER_WORD-1) {
+          ++wt_addr;
+          //wt_word_buffer_list[0] = wt_mem[0][wt_addr];
+          //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
+          input_tmp = Input_1.read();
+          wt_word_buffer_list[0] = input_tmp(127, 64);
+          wt_word_buffer_list[1] = input_tmp(63, 0);
+          //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
+          //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
+          wt_offset = 0;
+        } else {
+          ++wt_offset;
         }
         //print_wt_word(wt_word_buffer[0]);
 
@@ -267,13 +273,14 @@ void bin_conv(
         // Each word contains CONV_W_PER_WORD weight filters packed into the first
         // 63 bits, the last bit is unused. Wts are stored in output-major order.
         // -------------------------------------------------------------------
+        //2x3x3=18
         LOOP_LOAD_WTS:
-        //for (IdxType m = 0; m < CONVOLVERS; ++m) {
+        for (IdxType m = 0; m < CONVOLVERS; ++m) {
           for (ap_uint<2> kr = 0; kr < K; ++kr) {
             for (ap_uint<2> kc = 0; kc < K; ++kc)
               conv_params[m][kr][kc] = wt_word_buffer[m][kr*K+kc];
           }
-        //}
+        }
 
 
       }
@@ -285,7 +292,7 @@ void bin_conv(
       // (wrd_phase-wrd) is which wrd in the current phase, aligned to img boundary
       if (wrd != words_per_image) {
         LOOP_CONVOLVER_LOAD:
-        //for (IdxType m = 0; m < CONVOLVERS; ++m) {
+        for (IdxType m = 0; m < CONVOLVERS; ++m) {
           Word word = dmem[d_i_idx][m][p*words_per_image + wrd_phase];
           for (IdxType bank = 0; bank < CONV_BANKS; ++bank) {
             for (IdxType cc = 0; cc < CONV_COLS-2; ++cc) {
@@ -296,23 +303,23 @@ void bin_conv(
             word_buffer[m][bank][CONV_COLS-1] = (bank==CONV_BANKS-1) ?
               TwoBit(0) : encode_bit(word[ap_uint<6>(bank*BANK_WIDTH+BANK_WIDTH)]);
           }
-        //}
+        }
       }
 
       // Compute
       LOOP_CONVOLVERS:
-      //for (IdxType m = 0; m < CONVOLVERS; ++m) {
+      for (IdxType m = 0; m < CONVOLVERS; ++m) {
         // Do the following for each word in an image
         process_word( word_buffer[m], old_word_buffer[m], lb, rb, line_buffer[m], conv_params[m],
             conv_out_buffer[m], log_width, words_per_image, wrd );
-      //} // CONVOLVERS
+      } // CONVOLVERS
 
-      //for (IdxType m = 0; m < CONVOLVERS; ++m) {
+      for (IdxType m = 0; m < CONVOLVERS; ++m) {
         for (IdxType bank = 0; bank < CONV_BANKS; ++bank) {
           for (IdxType cc = 0; cc < CONV_COLS; ++cc) {
             old_word_buffer[m][bank][cc] = word_buffer[m][bank][cc];
         } }
-      //}
+      }
 
       // -------------------------------------------------------------------
       // Sum results across convolvers
@@ -321,7 +328,7 @@ void bin_conv(
         // Ignore conv results after processing the first word
         if (wrd > 0) {
           ConvSum s = 0;
-          //for (IdxType m = 0; m < CONVOLVERS; ++m)
+          for (IdxType m = 0; m < CONVOLVERS; ++m)
             s += conv_out_buffer[m][i];
           fixed_buffer[wrd_phase-1][i] += s;
         }
@@ -330,21 +337,17 @@ void bin_conv(
       // -------------------------------------------------------------------
       // Increment counters
       // -------------------------------------------------------------------
-      if(m==1){
-        if (wrd != words_per_image) {
-          wrd++;
-          wrd_phase++;
-        } else {
-          wrd = 0;
-        }
+      if (wrd != words_per_image) {
+        wrd++;
+        wrd_phase++;
+      } else {
+        wrd = 0;
       }
-     } // CONVOLVERS
     } // wrd_phase = 0 .. WORDS_PER_PHASE
 
   } // n_phases
 
-
-
+  //printf("LOOP_ACC_PHASES: words_per_image=%d\n", (unsigned int)words_per_image);
   LOOP_ACC_PHASES:
   for (ap_uint<5> w = 0; w < words_per_image; ++w) {
 #pragma HLS PIPELINE
@@ -373,6 +376,7 @@ void bin_conv(
 
   static Word outword;
   Word poolword;
+  //printf("LOOP_BATCH_NORM: words_per_image=%d\n", (unsigned int)(words_per_image));
   LOOP_BATCH_NORM:
   for (ap_uint<6> w = 0; w < words_per_image; ++w) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=16
@@ -428,7 +432,7 @@ void bin_conv(
 
 void bin_conv_wrapper(
 
-	hls::stream< Word > & Input_1,
+	hls::stream< DMA_Word > & Input_1,
 	hls::stream< Word > & Input_2,
 	hls::stream< Word > & Output_1
 ) {
@@ -440,8 +444,6 @@ void bin_conv_wrapper(
 	static Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=2
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=1
-    Word wt_mem[CONVOLVERS][C_WT_WORDS];
-#pragma HLS ARRAY_PARTITION variable=wt_mem complete dim=1
 	Word kh_mem[KH_WORDS];
 
     ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
@@ -459,10 +461,12 @@ void bin_conv_wrapper(
     //printf("bin_conv_cnt=%d\n", bin_conv_cnt);
 
 
-    for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i++)
+    for(unsigned int kh_i=0; kh_i<KH_WORDS; kh_i+=2)
     {
 #pragma HLS PIPELINE
-    	kh_mem[kh_i] = Input_1.read();
+    	DMA_Word input_tmp = Input_1.read();
+    	kh_mem[kh_i] = input_tmp(127, 64);
+    	kh_mem[kh_i+1] = input_tmp(63, 0);
     	//printf("0x%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
     }
 
@@ -488,7 +492,6 @@ void bin_conv_wrapper(
 
       bin_conv(
     	  Input_1,
-          wt_mem,
           nc,
           dmem,
           d_i_idx_list[bin_conv_cnt],
