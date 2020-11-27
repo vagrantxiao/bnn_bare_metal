@@ -126,7 +126,6 @@ void process_word(
 // -----------------------------------------------------------------------
 void bin_conv(
 	hls::stream< DMA_Word > & Input_1,
-    Word wt_mem[CONVOLVERS][C_WT_WORDS],
     NormComp nc,
     Word dmem[2][CONVOLVERS][C_DMEM_WORDS],
     ap_uint<1> d_i_idx,
@@ -445,8 +444,6 @@ void bin_conv_wrapper(
 	static Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=2
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=1
-    Word wt_mem[CONVOLVERS][C_WT_WORDS];
-#pragma HLS ARRAY_PARTITION variable=wt_mem complete dim=1
 	Word kh_mem[KH_WORDS];
 
     ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
@@ -495,7 +492,6 @@ void bin_conv_wrapper(
 
       bin_conv(
     	  Input_1,
-          wt_mem,
           nc,
           dmem,
           d_i_idx_list[bin_conv_cnt],
