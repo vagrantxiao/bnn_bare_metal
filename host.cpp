@@ -25,7 +25,7 @@
 #include "data_in_gen_2.h"
 #include "data_in_gen_3.h"
 #include "data_in_gen_4.h"
-
+#include "bin_conv_gen.h"
 
 int main(int argc, char** argv) {
   hls::stream< Word > data_gen_out0("data_gen_out0");
@@ -86,10 +86,12 @@ int main(int argc, char** argv) {
 	for(i=0; i<N_IMG; i++)
 	{
 		printf("We are processing %d images\n", i);
-		bc_gen_0(bin_conv_gen_out0);
-		bc_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
-		bc_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
-		bc_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
+
+		//bc_gen_0(bin_conv_gen_out0);
+		//bc_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
+		//bc_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
+		//bc_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
+		bin_conv_gen(bin_conv_gen_out3);
 
 		bd_gen_0(bin_dense_gen_out0);
 		bd_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);

@@ -1,6 +1,9 @@
 #include "Typedefs.h"
 #include "load_kh.h"
 
+int G_IN_CNT = 0;
+
+int G_BIN_CNT = 0;
 
 TwoBit encode_bit(const Bit& b) {
 #pragma HLS INLINE
@@ -209,6 +212,9 @@ void bin_conv(
   //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
   wt_word_buffer_list[0] = Input_1.read();
   wt_word_buffer_list[1] = Input_1.read();
+	G_IN_CNT++;
+	G_IN_CNT++;
+	if(G_BIN_CNT<=2) printf("G_IN_CNT=%d\n", G_IN_CNT);
   //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
   //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
   // ---------------------------------------------------------------------
@@ -257,6 +263,9 @@ void bin_conv(
           //wt_word_buffer_list[1] = wt_mem[1][wt_addr];
           wt_word_buffer_list[0] = Input_1.read();
           wt_word_buffer_list[1] = Input_1.read();
+      	  G_IN_CNT++;
+      	  G_IN_CNT++;
+      	  if(G_BIN_CNT<=2) printf("G_IN_CNT=%d\n", G_IN_CNT);
           //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[0](63,32), (unsigned int)wt_word_buffer_list[0](31,0));
           //printf("0x%08x%08x,\n", (unsigned int)wt_word_buffer_list[1](63,32), (unsigned int)wt_word_buffer_list[1](31,0));
           wt_offset = 0;
@@ -435,6 +444,7 @@ void bin_conv_wrapper(
 #pragma HLS INTERFACE ap_hs port=Output_1
 
 	static unsigned int bin_conv_cnt = 0;
+	G_BIN_CNT = bin_conv_cnt;
 	static Word dmem[2][CONVOLVERS][C_DMEM_WORDS];
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=2
 #pragma HLS ARRAY_PARTITION variable=dmem complete dim=1
@@ -445,7 +455,7 @@ void bin_conv_wrapper(
     ap_uint<1> d_i_idx_list[] =          {0,  1,  0,  0,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0  };
     ap_uint<1> d_o_idx_list[]  =         {1,  0,  1,  1,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1  };
     const Address n_inputs_list[] =      {128,128,256,256,256,256,256,256,512,512,512,512,512,512,512,512};
-    const Address o_index_list[] =             {0,  0,  0,  128,0,  128,256,384,0,  64, 128,192,256,320,384,448};
+    const Address o_index_list[] =       {0,  0,  0,  128,0,  128,256,384,0,  64, 128,192,256,320,384,448};
     const ap_uint<2> width_mode_list[] = {2,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0  };
     const ap_uint<2> norm_mode_list[] =  {2,  1,  2,  2,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,  2  };
     const Address n_outputs_list[] =     {128,256,128,128,128,128,128,128,64, 64, 64,64,  64, 64, 64, 64 };
@@ -461,6 +471,8 @@ void bin_conv_wrapper(
     {
 #pragma HLS PIPELINE
     	kh_mem[kh_i] = Input_1.read();
+    	G_IN_CNT++;
+    	if(G_BIN_CNT<=2) printf("G_IN_CNT=%d\n", G_IN_CNT);
     	//printf("0x%08x%08x,\n", (unsigned int) kh_mem[kh_i](63,32), (unsigned int) kh_mem[kh_i](31,0));
     }
 
