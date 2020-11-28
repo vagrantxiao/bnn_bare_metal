@@ -149,7 +149,6 @@ int main(int argc, char** argv) {
 		bd_gen_6(bd_gen_5_out1, bd_gen_6_out1);
 		bd_gen_7(bd_gen_6_out1, bd_gen_7_out1);
 		bd_gen_8(bd_gen_7_out1, bd_gen_8_out1);
-		bd_gen_9(bd_gen_8_out1, bd_gen_9_out1);
 
 
 		fp_conv(data_gen_out4,
@@ -176,7 +175,7 @@ int main(int argc, char** argv) {
 		}
 
 		for(j=0; j<37; j++){
-			bin_dense_wrapper(bd_gen_9_out1,
+			bin_dense_wrapper(bd_gen_8_out1,
 					  bin_conv2_out1,
 					  bin_dense_out1);
 		}
