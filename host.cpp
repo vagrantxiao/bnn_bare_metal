@@ -29,8 +29,10 @@
 #include "data_in_gen_4.h"
 #include "bin_conv_gen.h"
 #include "bin_conv_gen0.h"
+#include "bc_gen_0.h"
 #include "bin_conv_gen1.h"
 #include "bin_conv_gen2.h"
+#include "bc0_gen_0.h"
 
 int main(int argc, char** argv) {
   hls::stream< Word > data_gen_out0("data_gen_out0");
@@ -103,7 +105,7 @@ int main(int argc, char** argv) {
 		//bc_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
 		//bc_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
 		//bc_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
-		bin_conv_gen0(bin_conv_gen0_out1);
+		bc0_gen_0(bin_conv_gen0_out1);
 
 		bin_conv_gen1(bin_conv_gen1_out1);
 
