@@ -28,6 +28,7 @@
 #include "bin_conv_gen.h"
 #include "bin_conv_gen0.h"
 #include "bin_conv_gen1.h"
+#include "bin_conv_gen2.h"
 
 int main(int argc, char** argv) {
   hls::stream< Word > data_gen_out0("data_gen_out0");
@@ -55,6 +56,7 @@ int main(int argc, char** argv) {
 	hls::stream< Word > bin_conv_out1("bin_conv_out1");
 	hls::stream< Word > bin_conv0_out1("bin_conv0_out1");
 	hls::stream< Word > bin_conv1_out1("bin_conv1_out1");
+	hls::stream< Word > bin_conv2_out1("bin_conv2_out1");
 	hls::stream< Word > bin_dense_in1("bin_dense_in1");
 	hls::stream< Word > bin_dense_in2("bin_dense_in2");
 	hls::stream< DMA_Word > bin_dense_out1("bin_dense_out1");
@@ -73,6 +75,10 @@ int main(int argc, char** argv) {
 	hls::stream< Word > bin_dense_gen_out8("bin_dense_gen_out8");
 	hls::stream< Word > bin_dense_gen_out9("bin_dense_gen_out9");
 	hls::stream< Word > bin_dense_gen_out10("bin_dense_gen_out10");
+
+	hls::stream< Word > bin_conv_gen0_out1("bin_conv_gen0_out1");
+	hls::stream< Word > bin_conv_gen1_out1("bin_conv_gen1_out1");
+	hls::stream< Word > bin_conv_gen2_out1("bin_conv_gen2_out1");
 
 	Word dmem_o[2*2*64];
 
@@ -95,10 +101,11 @@ int main(int argc, char** argv) {
 		//bc_gen_1(bin_conv_gen_out0, bin_conv_gen_out1);
 		//bc_gen_2(bin_conv_gen_out1, bin_conv_gen_out2);
 		//bc_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
-		bin_conv_gen0(bin_conv_gen_out0);
+		bin_conv_gen0(bin_conv_gen0_out1);
 
-		bin_conv_gen1(bin_conv_gen_out1);
+		bin_conv_gen1(bin_conv_gen1_out1);
 
+		bin_conv_gen2(bin_conv_gen2_out1);
 
 		bd_gen_0(bin_dense_gen_out0);
 		bd_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);
@@ -119,20 +126,26 @@ int main(int argc, char** argv) {
 
 		for(j=0; j<3; j++){
 			//printf("bin_conv_wrapper_0=%d\n", j);
-			bin_conv_wrapper_0(bin_conv_gen_out0,
+			bin_conv_wrapper_0(bin_conv_gen0_out1,
 					 fp_conv_out1,
 					 bin_conv0_out1);
 		}
 
-		for(j=0; j<13; j++){
-			bin_conv_wrapper_1(bin_conv_gen_out1,
+		for(j=0; j<7; j++){
+			bin_conv_wrapper_1(bin_conv_gen1_out1,
 					bin_conv0_out1,
 					 bin_conv1_out1);
 		}
 
+		for(j=0; j<6; j++){
+			bin_conv_wrapper_2(bin_conv_gen2_out1,
+					bin_conv1_out1,
+					 bin_conv2_out1);
+		}
+
 		for(j=0; j<37; j++){
 			bin_dense_wrapper(bin_dense_gen_out10,
-					  bin_conv1_out1,
+					  bin_conv2_out1,
 					  bin_dense_out1);
 		}
 
