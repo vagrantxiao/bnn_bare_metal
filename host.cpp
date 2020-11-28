@@ -32,7 +32,12 @@
 #include "bc_gen_0.h"
 #include "bin_conv_gen1.h"
 #include "bin_conv_gen2.h"
+
 #include "bc0_gen_0.h"
+
+#include "bc1_gen_0.h"
+#include "bc1_gen_1.h"
+#include "bc1_gen_2.h"
 
 int main(int argc, char** argv) {
   hls::stream< Word > data_gen_out0("data_gen_out0");
@@ -107,7 +112,13 @@ int main(int argc, char** argv) {
 		//bc_gen_3(bin_conv_gen_out2, bin_conv_gen_out3);
 		bc0_gen_0(bin_conv_gen0_out1);
 
-		bin_conv_gen1(bin_conv_gen1_out1);
+		hls::stream< Word > bc1_gen_0_out1("bc1_gen_0_out1");
+		hls::stream< Word > bc1_gen_1_out1("bc1_gen_1_out1");
+		hls::stream< Word > bc1_gen_2_out1("bc1_gen_2_out1");
+		bc1_gen_0(bc1_gen_0_out1);
+		bc1_gen_1(bc1_gen_0_out1, bc1_gen_1_out1);
+		bc1_gen_2(bc1_gen_1_out1, bc1_gen_2_out1);
+
 
 		bin_conv_gen2(bin_conv_gen2_out1);
 
@@ -136,7 +147,7 @@ int main(int argc, char** argv) {
 		}
 
 		for(j=0; j<7; j++){
-			bin_conv_1(bin_conv_gen1_out1,
+			bin_conv_1(bc1_gen_2_out1,
 					bin_conv0_out1,
 					 bin_conv1_out1);
 		}
