@@ -15,9 +15,6 @@
 #include "bd_gen_5.h"
 #include "bd_gen_6.h"
 #include "bd_gen_7.h"
-#include "bd_gen_8.h"
-#include "bd_gen_9.h"
-#include "bd_gen_10.h"
 #include "bin_conv_0.h"
 #include "bin_conv_1.h"
 #include "bin_conv_2.h"
@@ -130,17 +127,23 @@ int main(int argc, char** argv) {
 		bc2_gen_1(bc2_gen_0_out1, bc2_gen_1_out1);
 
 
-		bd_gen_0(bin_dense_gen_out0);
-		bd_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);
-		bd_gen_2(bin_dense_gen_out1, bin_dense_gen_out2);
-		bd_gen_3(bin_dense_gen_out2, bin_dense_gen_out3);
-		bd_gen_4(bin_dense_gen_out3, bin_dense_gen_out4);
-		bd_gen_5(bin_dense_gen_out4, bin_dense_gen_out5);
-		bd_gen_6(bin_dense_gen_out5, bin_dense_gen_out6);
-		bd_gen_7(bin_dense_gen_out6, bin_dense_gen_out7);
-		bd_gen_8(bin_dense_gen_out7, bin_dense_gen_out8);
-		bd_gen_9(bin_dense_gen_out8, bin_dense_gen_out9);
-		bd_gen_10(bin_dense_gen_out9, bin_dense_gen_out10);
+		hls::stream< Word > bd_gen_0_out1("bd_gen_0_out1");
+		hls::stream< Word > bd_gen_1_out1("bd_gen_1_out1");
+		hls::stream< Word > bd_gen_2_out1("bd_gen_2_out1");
+		hls::stream< Word > bd_gen_3_out1("bd_gen_3_out1");
+		hls::stream< Word > bd_gen_4_out1("bd_gen_4_out1");
+		hls::stream< Word > bd_gen_5_out1("bd_gen_5_out1");
+		hls::stream< Word > bd_gen_6_out1("bd_gen_6_out1");
+		hls::stream< Word > bd_gen_7_out1("bd_gen_7_out1");
+
+		bd_gen_0(bd_gen_0_out1);
+		bd_gen_1(bd_gen_0_out1, bd_gen_1_out1);
+		bd_gen_2(bd_gen_1_out1, bd_gen_2_out1);
+		bd_gen_3(bd_gen_2_out1, bd_gen_3_out1);
+		bd_gen_4(bd_gen_3_out1, bd_gen_4_out1);
+		bd_gen_5(bd_gen_4_out1, bd_gen_5_out1);
+		bd_gen_6(bd_gen_5_out1, bd_gen_6_out1);
+		bd_gen_7(bd_gen_6_out1, bd_gen_7_out1);
 
 
 		fp_conv(data_gen_out4,
@@ -167,7 +170,7 @@ int main(int argc, char** argv) {
 		}
 
 		for(j=0; j<37; j++){
-			bin_dense_wrapper(bin_dense_gen_out10,
+			bin_dense_wrapper(bd_gen_7_out1,
 					  bin_conv2_out1,
 					  bin_dense_out1);
 		}

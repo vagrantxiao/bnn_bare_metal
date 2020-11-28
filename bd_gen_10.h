@@ -1,1 +1,0 @@
-void bd_gen_10(hls::stream< Word > & Input_1, hls::stream< Word > & Output_1);
