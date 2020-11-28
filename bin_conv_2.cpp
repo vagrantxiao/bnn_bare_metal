@@ -3,7 +3,9 @@
 #include "bin_conv.h"
 
 
-void bin_conv_wrapper_0(
+
+
+void bin_conv_2(
 
 	hls::stream< Word > & Input_1,
 	hls::stream< Word > & Input_2,
@@ -21,13 +23,13 @@ void bin_conv_wrapper_0(
 #pragma HLS ARRAY_PARTITION variable=wt_mem complete dim=1
 	Word kh_mem[KH_WORDS];
 
-    ap_uint<1> d_i_idx_list[] =          {0,  1,  0   };
-    ap_uint<1> d_o_idx_list[]  =         {1,  0,  1   };
-    const Address n_inputs_list[] =      {128,128,256 };
-    const Address o_index_list[] =       {0,  0,  0,  };
-    const ap_uint<2> width_mode_list[] = {2,  1,  1,  };
-    const ap_uint<2> norm_mode_list[] =  {2,  1,  2,  };
-    const Address n_outputs_list[] =     {128,256,128 };
+    ap_uint<1> d_i_idx_list[] =          {0,  0,  0,  0,  0,  0  };
+    ap_uint<1> d_o_idx_list[]  =         {1,  1,  1,  1,  1,  1  };
+    const Address n_inputs_list[] =      {512,512,512,512,512,512};
+    const Address o_index_list[] =       {128,192,256,320,384,448};
+    const ap_uint<2> width_mode_list[] = {0,  0,  0,  0,  0,  0  };
+    const ap_uint<2> norm_mode_list[] =  {2,  2,  2,  2,  2,  2  };
+    const Address n_outputs_list[] =     {64,64,  64, 64, 64, 64 };
 
     Address o_index = o_index_list[bin_conv_cnt];
     Address n_outputs = n_outputs_list[bin_conv_cnt];
@@ -47,12 +49,12 @@ void bin_conv_wrapper_0(
 
     if(bin_conv_cnt == 0)
     {
-		//for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
+		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
 		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
 			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
 			{
 #pragma HLS PIPELINE
-				dmem[0][dmem_j][dmem_k] = Input_2.read();
+				dmem[dmem_i][dmem_j][dmem_k] = Input_2.read();
 			}
 
     }
@@ -83,19 +85,18 @@ void bin_conv_wrapper_0(
     }
 
 
-    if(bin_conv_cnt == 2)
+    if(bin_conv_cnt == 5)
     {
 		for(unsigned int dmem_i=0; dmem_i<2; dmem_i++)
-		  for(unsigned int dmem_j=0; dmem_j<CONVOLVERS; dmem_j++)
-			for(unsigned int dmem_k=0; dmem_k<C_DMEM_WORDS; dmem_k++)
-			{
-#pragma HLS PIPELINE
-				Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
+		  for(unsigned int dmem_j=0; dmem_j<2; dmem_j++)
+			for(unsigned int dmem_k=0; dmem_k<64; dmem_k++){
+			  #pragma HLS PIPELINE
+Output_1.write(dmem[dmem_i][dmem_j][dmem_k]);
 			}
     }
 
     bin_conv_cnt++;
-    if(bin_conv_cnt==3) bin_conv_cnt = 0;
+    if(bin_conv_cnt==6) bin_conv_cnt = 0;
 
 }
 

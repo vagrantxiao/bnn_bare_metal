@@ -18,9 +18,9 @@
 #include "bd_gen_8.h"
 #include "bd_gen_9.h"
 #include "bd_gen_10.h"
-#include "bin_conv_wrapper_0.h"
-#include "bin_conv_wrapper_1.h"
-#include "bin_conv_wrapper_2.h"
+#include "bin_conv_0.h"
+#include "bin_conv_1.h"
+#include "bin_conv_2.h"
 #include "bin_dense_wrapper.h"
 #include "data_in_gen_0.h"
 #include "data_in_gen_1.h"
@@ -128,19 +128,19 @@ int main(int argc, char** argv) {
 
 		for(j=0; j<3; j++){
 			//printf("bin_conv_wrapper_0=%d\n", j);
-			bin_conv_wrapper_0(bin_conv_gen0_out1,
+			bin_conv_0(bin_conv_gen0_out1,
 					 fp_conv_out1,
 					 bin_conv0_out1);
 		}
 
 		for(j=0; j<7; j++){
-			bin_conv_wrapper_1(bin_conv_gen1_out1,
+			bin_conv_1(bin_conv_gen1_out1,
 					bin_conv0_out1,
 					 bin_conv1_out1);
 		}
 
 		for(j=0; j<6; j++){
-			bin_conv_wrapper_2(bin_conv_gen2_out1,
+			bin_conv_2(bin_conv_gen2_out1,
 					bin_conv1_out1,
 					 bin_conv2_out1);
 		}
