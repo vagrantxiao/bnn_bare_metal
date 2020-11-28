@@ -39,6 +39,10 @@
 #include "bc1_gen_1.h"
 #include "bc1_gen_2.h"
 
+#include "bc2_gen_0.h"
+#include "bc2_gen_1.h"
+
+
 int main(int argc, char** argv) {
   hls::stream< Word > data_gen_out0("data_gen_out0");
   hls::stream< Word > data_gen_out1("data_gen_out1");
@@ -120,7 +124,11 @@ int main(int argc, char** argv) {
 		bc1_gen_2(bc1_gen_1_out1, bc1_gen_2_out1);
 
 
-		bin_conv_gen2(bin_conv_gen2_out1);
+		hls::stream< Word > bc2_gen_0_out1("bc2_gen_0_out1");
+		hls::stream< Word > bc2_gen_1_out1("bc2_gen_1_out1");
+		bc2_gen_0(bc2_gen_0_out1);
+		bc2_gen_1(bc2_gen_0_out1, bc2_gen_1_out1);
+
 
 		bd_gen_0(bin_dense_gen_out0);
 		bd_gen_1(bin_dense_gen_out0, bin_dense_gen_out1);
@@ -153,7 +161,7 @@ int main(int argc, char** argv) {
 		}
 
 		for(j=0; j<6; j++){
-			bin_conv_2(bin_conv_gen2_out1,
+			bin_conv_2(bc2_gen_1_out1,
 					bin_conv1_out1,
 					 bin_conv2_out1);
 		}
