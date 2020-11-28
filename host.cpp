@@ -15,6 +15,8 @@
 #include "bd_gen_5.h"
 #include "bd_gen_6.h"
 #include "bd_gen_7.h"
+#include "bd_gen_8.h"
+#include "bd_gen_9.h"
 #include "bin_conv_0.h"
 #include "bin_conv_1.h"
 #include "bin_conv_2.h"
@@ -135,6 +137,8 @@ int main(int argc, char** argv) {
 		hls::stream< Word > bd_gen_5_out1("bd_gen_5_out1");
 		hls::stream< Word > bd_gen_6_out1("bd_gen_6_out1");
 		hls::stream< Word > bd_gen_7_out1("bd_gen_7_out1");
+		hls::stream< Word > bd_gen_8_out1("bd_gen_8_out1");
+		hls::stream< Word > bd_gen_9_out1("bd_gen_9_out1");
 
 		bd_gen_0(bd_gen_0_out1);
 		bd_gen_1(bd_gen_0_out1, bd_gen_1_out1);
@@ -144,6 +148,8 @@ int main(int argc, char** argv) {
 		bd_gen_5(bd_gen_4_out1, bd_gen_5_out1);
 		bd_gen_6(bd_gen_5_out1, bd_gen_6_out1);
 		bd_gen_7(bd_gen_6_out1, bd_gen_7_out1);
+		bd_gen_8(bd_gen_7_out1, bd_gen_8_out1);
+		bd_gen_9(bd_gen_8_out1, bd_gen_9_out1);
 
 
 		fp_conv(data_gen_out4,
@@ -170,7 +176,7 @@ int main(int argc, char** argv) {
 		}
 
 		for(j=0; j<37; j++){
-			bin_dense_wrapper(bd_gen_7_out1,
+			bin_dense_wrapper(bd_gen_9_out1,
 					  bin_conv2_out1,
 					  bin_dense_out1);
 		}
